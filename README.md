@@ -9,15 +9,15 @@ Este repositorio facilita un primer contacto con los métodos ofrecidos por la A
 
 1. Descargar el código del repositorio de Github.
 2. Instalarlo en un ordenador local o en un servidor de la entidad donde exista un entorno de ejecución PHP. 
-3. Configurar las credenciales de acceso a la instancia del CRM que queramos conectarnos y otras configuraciones.
+3. Configurar las credenciales de acceso a la instancia del CRM a la que queramos conectarnos y otras configuraciones.
 4. Probar los diferentes ejemplos o implementar ejemplos personalizados para nuevos casos de uso. 
 
 
 ## Descargar el conjunto de ejemplos API
-En la URL raiz de este repositorio: https://github.com/SinergiaTIC/SinergiaCRM-API-Examples: 
+En la URL raíz de este repositorio: https://github.com/SinergiaTIC/SinergiaCRM-API-Examples: 
 
 1. Pulsar en el botón verde llamado **<> Code**
-2. Pulsar en el enlace de **Download ZIP**
+2. Pulsar en el enlace **Download ZIP**
 
 
 ## Estructura del código
