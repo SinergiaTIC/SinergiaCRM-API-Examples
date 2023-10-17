@@ -3,7 +3,7 @@
 
 class APIClient
 {
-    public $appName = "SinergiaCRM API Client v4.1";
+    public $appName = "SinergiaCRM API Examples v4.1";
     public $sessionId;
     public $url;
     public $verbose;
