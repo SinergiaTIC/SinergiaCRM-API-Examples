@@ -181,6 +181,7 @@ En el fichero **app.php** activamos la llamada a ese fichero descomentando la l√
 
     // SETTERS
     // include_once 'Ejemplos/SET/set_entry.php';
+    // include_once 'Ejemplos/SET/set_document_revision.php';
     // include_once 'Ejemplos/SET/set_relationship.php';
     // include_once 'Ejemplos/SET/set_image.php';
 
