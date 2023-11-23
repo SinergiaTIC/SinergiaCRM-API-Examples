@@ -98,16 +98,16 @@
 
     // c) Hourly reservation for October 11, 2023 from 11 a.m. to 12 p.m. by a user in the GMT+0 zone
     
-        // $data['start_date'] = '2023-19-11 11:00:00';  
-        // $data['end_date'] = '2023-19-11 12:00:00';    
+        // $data['start_date'] = '2023-10-11 11:00:00';  
+        // $data['end_date'] = '2023-10-11 12:00:00';    
         // $data['assigned_user_id'] = 2;
         // $data['status'] = 'pending';
         // $data['all_day'] = 0;
 
 
     // d) Hourly reservation for October 11, 2023 from 11 a.m. to 12 p.m. by a user in the GMT+2 zone
-        // $data['start_date'] = '2023-19-11 09:00:00';  
-        // $data['end_date'] = '2023-19-11 10:00:00';    
+        // $data['start_date'] = '2023-10-11 09:00:00';  
+        // $data['end_date'] = '2023-10-11 10:00:00';    
         // $data['assigned_user_id'] = 2;
         // $data['status'] = 'pending';
         // $data['all_day'] = 0;
@@ -122,6 +122,13 @@
     // $data['stic_pa_password_c'] = '<PASSWORD>';
 
 
+// EXAMPLE 8
+// Create a document indicating the name and publication date
+
+    // $module = 'Documents';
+    // $data = array();
+    // $data['document_name'] = 'Document_Test_API';
+    // $data['date_input'] = '2023-10-11';
 
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);

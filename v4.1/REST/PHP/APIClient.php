@@ -305,6 +305,19 @@ class APIClient
         echo "</span>";
     }
 
+    /**
+     * Configures the call to the API set_document_revision method. 
+     * Creates a new document revision and relates it to a document.
+     */
+    public function setDocumentRevision($params)
+    {
+        $params = array_merge(array('session' => $this->sessionId), $params);
+        $result = $this->call("set_document_revision", $params);
+
+        echo "<span style='color:green'";
+        print_r($result);
+        echo "</span><br /><br />";
+    }
 
     /**
      * Configures the call to the API set_relationship method. 
