@@ -113,7 +113,7 @@
 
     // $params = array(
     //     'module_name' => 'Contacts',
-    //     "module_id" => 'c8ed0b7c-be21-0f7f-0f15-62129cab13a3', 
+    //     "module_id" => '<ID>', 
     //     "link_field_name" => "stic_personal_environment_contacts",
     //     "related_module_query" => "relationship_type = 'son'",
     //     "related_fields" => array(
@@ -142,6 +142,22 @@
     //     "deleted" => 0,
     // );
 
+
+// EXAMPLE 8
+// Get the id and name of the registration in "confirmed" status (filter on related_module_query) of the event whose id = <ID>
+
+    $params = array(
+        'module_name' => 'stic_Events',
+        "module_id" => '<ID>', 
+        "link_field_name" => "stic_registrations_stic_events",
+        "related_module_query" => "status = 'confirmed'",
+        "related_fields" => array(
+            'id',
+            'name',
+        ),
+        "related_module_link_name_to_fields_array" => array(),
+        "deleted" => 0,
+    );
 
 // Execute the call to the corresponding API client function
 $apiClient->getRelationships($params);

@@ -33,7 +33,7 @@
 
     // $params = array(
     //     'module_name' => 'Contacts',
-    //     'id' => '<ID>',
+    //     'id' => '13228765-5cec-c77f-47aa-65ba60505beb',
     //     'select_fields' => array(
     //         'name',
     //         'last_name',
