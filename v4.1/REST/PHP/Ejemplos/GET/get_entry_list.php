@@ -34,7 +34,7 @@
     //     'module_name' => 'Contacts',
     //     'query' => "",
     //     'order_by' => '',
-    //     'offset' => 0,
+    //     'offset' => 10,
     //     'select_fields' => array(
     //         'name',
     //         'last_name',
@@ -44,7 +44,7 @@
     //         'stic_identification_number_c'
     //     ),
     //     'link_name_to_fields_array' => [],
-    //     'max_results' => 10,
+    //     'max_results' => 100,
     //     'deleted' => 0,
     // );
 
@@ -167,6 +167,23 @@
     //     'deleted' => 0,
     // );
 
+
+// EXAMPLE 7 - Filter query with basic field and custom field
+// Get the name of the persons with language = 'spanish'
+    // $params = array(
+    //     'module_name' => 'Contacts',
+    //     // 'query' => "", // without filter
+    //     // 'query' => "contacts.last_name = '<SURNAME>'", // filter with basic field
+    //     'query' => "contacts_cstm.stic_language_c = 'spanish'", // filter with custom field
+    //     'order_by' => '',
+    //     'offset' => 0,
+    //     'select_fields' => array(
+    //         'name',
+    //     ),
+    //     'link_name_to_fields_array' => [],        
+    //     'max_results' => 10,
+    //     'deleted' => 0,
+    // ); 
 
 // Execute the call to the corresponding API client function
 $apiClient->getEntryList($params);
