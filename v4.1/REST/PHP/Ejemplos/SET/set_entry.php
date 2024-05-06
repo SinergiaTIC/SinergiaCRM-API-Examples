@@ -153,12 +153,13 @@
 
 
 // EXAMPLE 9
-// Update the Opted Out, Invalid and Opted properties of an email with ID = <ID>. This ID was obtained through EXAMPLE 9 of Examples/GET/get_relationships.php
+// Update the Opted Out, Invalid and Opted properties of an email with ID = <ID>. This <ID> was obtained through EXAMPLE 9 of Examples/GET/get_relationships.php
 
     // $module = 'EmailAddresses';
     // $data = array();
     // $data['id'] = '<ID>';
     // $data['optOut'] = '1'; //para el caso de rehusado
+    // $data['invalid_email'] = '1';
     // $data['confirm_opt_in'] = 'not-opt-in';    // not-opt-in | opt-in 
 
 // Execute the call to the corresponding API client function
