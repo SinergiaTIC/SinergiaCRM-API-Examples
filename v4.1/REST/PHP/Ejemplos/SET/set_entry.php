@@ -47,8 +47,9 @@
 
     // $module = 'Contacts';
     // $data = array();
-    // $data['id'] = '<ID>';
-    // $data['email1'] = '<EMAIL>';
+    // $data['id'] = '65e40330-84da-512c-2b83-5e830efa3986';
+    // $data['optOut'] = '1'; //para el caso de rehusado
+    // $data['confirm_opt_in'] = 'confirmed-opt-in'; //para el caso de no adherido
 
 
 // EXAMPLE 3
@@ -149,6 +150,16 @@
     // $data = array();
     // $data['document_name'] = 'Document_Test_API';
     // $data['date_input'] = '2023-10-11';
+
+
+// EXAMPLE 9
+// Update the Opted Out, Invalid and Opted properties of an email with ID = <ID>. This ID was obtained through EXAMPLE 9 of Examples/GET/get_relationships.php
+
+    // $module = 'EmailAddresses';
+    // $data = array();
+    // $data['id'] = '<ID>';
+    // $data['optOut'] = '1'; //para el caso de rehusado
+    // $data['confirm_opt_in'] = 'not-opt-in';    // not-opt-in | opt-in 
 
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);

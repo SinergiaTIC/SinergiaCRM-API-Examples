@@ -159,6 +159,22 @@
     //     "deleted" => 0,
     // );
 
+
+// EXAMPLE 9
+// Get the id of the email address ID related to a contact with ID = <ID>
+
+    // $params = array(
+    //     'module_name' => 'Contacts',
+    //     "module_id" => '<ID>', 
+    //     "link_field_name" => "email_addresses",
+    //     "related_module_query" => "",
+    //     "related_fields" => array(
+    //         'id',
+    //     ),
+    //     "related_module_link_name_to_fields_array" => array(),
+    //     "deleted" => 0,
+    // );
+
 // Execute the call to the corresponding API client function
 $apiClient->getRelationships($params);
 
