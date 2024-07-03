@@ -162,5 +162,56 @@
     // $data['invalid_email'] = '1';
     // $data['confirm_opt_in'] = 'not-opt-in';    // not-opt-in | opt-in 
 
+
+// EXAMPLE 10
+// Create a product indicating a name, price, type and assigned_user_id
+
+    // $module = 'AOS_Products';
+    // $data = array();
+    // $data['name'] = 'API Product';
+    // $data['price'] = '1';
+    // $data['type'] = 'Good';
+    // $data['part_number'] = 'API_1';
+    // $data['assigned_user_id'] = '1';
+
+
+// EXAMPLE 12
+// Create a product indicating a name, stage, expiration date, invoice_status and assigned_user_id
+
+    // $module = 'AOS_Quotes';
+    // $data = array();
+    // $data['name'] = 'API Quoted';
+    // $data['stage'] = 'On_Hold';
+    // $data['expiration'] = '2024-12-31';
+    // $data['invoice_status'] = 'Not Invoiced';
+    // $data['assigned_user_id'] = '1';
+
+// EXAMPLE 13
+// Create an AOS_Products_Quotes indicating the required fields and a calculated fields
+// IMPORTANT - When creating the product lines from the API we will have to update the globals fields of the Budget: 
+//  - total_amt, discount_amount, subtotal_amount, shipping_tax, shipping_tax_amt, tax_amount and total_amount
+
+    // $module = 'AOS_Products_Quotes';
+    // $data = array();
+    // $data['name'] = 'AOS_Products_Quotes_1';
+    // $data['assigned_user_id'] = '1';
+    // $data['product_id'] = 'cd2234d4-ed1a-b8fb-9651-668508941226';
+    // $data['parent_id'] = 'a5cca6d7-4a4d-5f0a-c595-668508ad890f';
+    // $data['parent_type'] = 'AOS_Quotes';
+    // $data['number'] = '1'; // Enter the index of the product line within the budget
+    // $data['part_number'] = 'API_1';  // Enter the product code
+    // $data['product_qty'] = '1'; 
+    // $data['product_list_price'] = '1'; 
+    // $data['product_discount'] = '5'; 
+    // $data['discount'] = 'Percentage'; 
+    // $data['vat'] = '21';
+
+    // // Fields to calculate according to the value of the previous fields
+    // $data['product_unit_price'] = '0,95';  // Price of each unit with discount
+    // $data['product_total_price'] = '1'; // Price of the product line after applying the discount
+    // $data['vat_amt'] = '0,21'; // product line VAT
+
+
+
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);
