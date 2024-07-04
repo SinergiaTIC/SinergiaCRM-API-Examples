@@ -172,7 +172,7 @@
     // $data['price'] = '1';
     // $data['type'] = 'Good';
     // $data['part_number'] = 'API_1';
-    // $data['assigned_user_id'] = '1';
+    // $data['assigned_user_id'] = '<ASSIGNED_USER_ID>';
 
 
 // EXAMPLE 12
@@ -184,7 +184,7 @@
     // $data['stage'] = 'On_Hold';
     // $data['expiration'] = '2024-12-31';
     // $data['invoice_status'] = 'Not Invoiced';
-    // $data['assigned_user_id'] = '1';
+    // $data['assigned_user_id'] = '<ASSIGNED_USER_ID>';
 
 // EXAMPLE 13
 // Create an AOS_Products_Quotes indicating the required fields and a calculated fields
@@ -194,9 +194,9 @@
     // $module = 'AOS_Products_Quotes';
     // $data = array();
     // $data['name'] = 'AOS_Products_Quotes_1';
-    // $data['assigned_user_id'] = '1';
-    // $data['product_id'] = 'cd2234d4-ed1a-b8fb-9651-668508941226';
-    // $data['parent_id'] = 'a5cca6d7-4a4d-5f0a-c595-668508ad890f';
+    // $data['assigned_user_id'] = '<ASSIGNED_USER_ID>';
+    // $data['product_id'] = '<PRODUCT_ID>';
+    // $data['parent_id'] = '<QUOTE_ID>';
     // $data['parent_type'] = 'AOS_Quotes';
     // $data['number'] = '1'; // Enter the index of the product line within the budget
     // $data['part_number'] = 'API_1';  // Enter the product code
