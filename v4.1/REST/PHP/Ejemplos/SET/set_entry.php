@@ -175,6 +175,21 @@
     // $data['assigned_user_id'] = '<ASSIGNED_USER_ID>';
 
 
+// EXAMPLE 11
+// Create a work calendar record indicating the assigned user, the type and the dates according to the type
 
+    // $module = 'stic_Work_Calendar';
+    // $data = array();
+    // $data['assigned_user_id'] = 2;
+
+    // a) All day record
+        // $data['type'] = 'vacation';
+        // $data['start_date'] = '2024-08-11 22:00:00';
+
+    // b) Not all day record
+        // $data['type'] = 'working';
+        // $data['start_date'] = '2024-08-12 22:00:00';
+        // $data['end_date'] = '2024-08-13 22:00:00';
+        
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);
