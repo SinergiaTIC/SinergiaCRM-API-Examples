@@ -34,8 +34,9 @@
     //     'module_name' => 'Contacts',
     //     'query' => "",
     //     'order_by' => '',
-    //     'offset' => 10,
+    //     'offset' => 0,
     //     'select_fields' => array(
+    //         'id',
     //         'name',
     //         'last_name',
     //         'email1', 
@@ -44,7 +45,7 @@
     //         'stic_identification_number_c'
     //     ),
     //     'link_name_to_fields_array' => [],
-    //     'max_results' => 100,
+    //     'max_results' => 10,
     //     'deleted' => 0,
     // );
 
