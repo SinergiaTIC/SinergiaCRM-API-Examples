@@ -33,7 +33,7 @@
 
 
 // EXAMPLE 1
-// Sets the document revision test_image.jpg (existing in the assets folder) in the document whose id = <ID>
+// Sets the document revision test_image.jpg (existing in the assets folder) with version = <NUM_REVISION> in the document whose id = <ID>
 // To create a document it is possible to activate example 8 of Examples/SET/set_entry.php
 
     // $fileName = 'test_image.jpg';
@@ -41,10 +41,11 @@
     // $contents = file_get_contents($file);
 
     // $params = array(
-    //     'note' => array( 
+    //     'document_revision' => array( 
     //         'id' => '<ID>',
     //         'file' => base64_encode($contents),
     //         'filename' => $fileName,
+    //         'revision' => '<NUM_REVISION>',
     //     ),
     // );
 

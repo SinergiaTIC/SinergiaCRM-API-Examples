@@ -59,7 +59,7 @@ class APIClient
             echo "API método: <span style='color:blue'>" . strtoupper($method) . "</span><br />";
             echo "ARGUMENTOS de la llamada: <br />";
             echo "<span style='color:blue'>";
-            var_dump($post);
+            var_export($post);
             echo "</span>";
         }
 
@@ -115,16 +115,16 @@ class APIClient
         );
 
         $result = $this->call('login', $params);
-
-        if ($result && $result->id) {
+        $id = $result->id ?? '';
+        if ($id) {
             if ($this->verbose) {
                 echo "<span style='color:green'>";
                 // print_r($result);
-                echo "<br /><br />SESSION_ID = " . $result->id;
+                echo "<br /><br />SESSION_ID = " . $id;
                 echo "</span><br /><br />";
             }
             // Configurar el ID de la sesión en el cliente API
-            return $result->id;
+            return $id;
         }
     }
 
@@ -160,6 +160,7 @@ class APIClient
      */
     function getAvailableModules($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_available_modules", $params, $this->url);
         if ($this->verbose) {
@@ -178,6 +179,7 @@ class APIClient
      */
     function getModuleFields($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_module_fields", $params, $this->url);
         if ($this->verbose) {
@@ -195,13 +197,15 @@ class APIClient
      */
     public function getLanguageDefinition($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_language_definition", $params, $this->url);
+        $modules = $params['modules'] ?? ''; 
         if ($this->verbose) {
-            if ($params['modules'] == 'app_list_strings') {
+            if ($modules == 'app_list_strings') {
                 echo "<br /><br />LISTAS DESPLEGABLES: <br /><br />";
             } else {
-                echo "<br /><br />MÓDULO: {$params['modules']} <br /><br />";
+                echo "<br /><br />MÓDULO: {$modules} <br /><br />";
             }
             echo "<span style='color:green'";
             print_r($result);
@@ -217,6 +221,7 @@ class APIClient
      */
     function getEntryList($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_entry_list", $params, $this->url);
         if ($this->verbose) {
@@ -234,6 +239,7 @@ class APIClient
      */
     public function getEntry($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_entry", $params, $this->url);
         if ($this->verbose) {
@@ -251,6 +257,7 @@ class APIClient
      */
     public function getRelationships($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_relationships", $params, $this->url);
         if ($this->verbose) {
@@ -268,10 +275,12 @@ class APIClient
      */
     public function getDocumentRevision($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_document_revision", $params, $this->url);
+        $id = $params['id'] ?? '';
         if ($this->verbose) {
-            echo "- INFORMACIÓN DE LA REVISIÓN DEL DOCUMENTO {$params['i']}<br /><br />";
+            echo "- INFORMACIÓN DE LA REVISIÓN DEL DOCUMENTO {$id}<br /><br />";
             echo "<span style='color:green'";
             print_r($result);
             echo "</span>";
@@ -285,10 +294,12 @@ class APIClient
      */
     public function getImage($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("get_image", $params, $this->url);
+        $id = $params['id'] ?? '';
         if ($this->verbose) {
-            echo " - INFORMACIÓN DE IMAGEN DEL REGISTRO {$params['id']}<br /><br />";
+            echo " - INFORMACIÓN DE IMAGEN DEL REGISTRO {$id}<br /><br />";
             echo "<span style='color:green'";
             print_r($result);
             echo "</span>";
@@ -330,6 +341,7 @@ class APIClient
      */
     public function setDocumentRevision($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("set_document_revision", $params);
 
@@ -344,6 +356,7 @@ class APIClient
      */
     public function setRelationship($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("set_relationship", $params);
 
@@ -358,6 +371,7 @@ class APIClient
      */
     public function setImage($params)
     {
+        $params = is_array($params) ? $params : [];
         $params = array_merge(array('session' => $this->sessionId), $params);
         $result = $this->call("set_image", $params);
 

@@ -32,7 +32,7 @@
 
     // $params = array(
     //     'modules' => 'Contacts',
-    //     'md5' => false,
+    //     'MD5' => false,
     // );
 
 
@@ -41,7 +41,7 @@
 
     // $params = array(
     //     'modules' => 'app_list_strings',
-    //     'md5' => false,
+    //     'MD5' => false,
     // );
 
 

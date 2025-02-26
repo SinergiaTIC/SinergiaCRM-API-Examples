@@ -33,7 +33,7 @@
 
     // $params = array(
     //     'module_name' => 'Contacts',
-    //     'id' => '13228765-5cec-c77f-47aa-65ba60505beb',
+    //     'id' => '<ID>',
     //     'select_fields' => array(
     //         'name',
     //         'last_name',
@@ -42,7 +42,8 @@
     //         'stic_identification_type_c', 
     //         'stic_identification_number_c'
     //     ),
-    //     'deleted' => 0,
+    //     'link_name_to_fields_array' => array(),
+    //     'track_view' => 0,
     // );
 
 
@@ -59,7 +60,8 @@
     //         'description', 
     //         'stic_events_fp_event_locations_name'
     //     ),
-    //     'deleted' => 0,
+    //     'link_name_to_fields_array' => array(),
+    //     'track_view' => 0,
     // );
 
 
@@ -80,7 +82,7 @@
     //             )
     //         )
     //     ),    
-    //     'deleted' => 0,
+    //     'track_view' => 0,
     // );
 
 
@@ -101,7 +103,7 @@
     //             )
     //         )
     //     ),    
-    //     'deleted' => 0,
+    //     'track_view' => 0,
     // );
 
 
@@ -126,8 +128,7 @@
     //             )
     //         )
     //     ), 
-    //     'max_results' => 10,
-    //     'deleted' => 0,
+    //     'track_view' => 0,
     // );
 
 
@@ -143,7 +144,8 @@
     //         'interlocutor', // Devuelve el valor del campo name.
     //         'contact_id_c', // Campo vinculado al campo relacionado interlocutor (Devuelve el ID del interlocutor)
     //     ),
-    //     'deleted' => 0,
+    //     'link_name_to_fields_array' => array(),    
+    //     'track_view' => 0,
     // );
 
 

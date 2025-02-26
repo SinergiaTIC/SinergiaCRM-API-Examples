@@ -41,7 +41,8 @@
 // EXAMPLE 2 (It is necessary to activate EXAMPLE 1)
 // Render the received binary image
 
-    // echo '<img src="data:image/gif;base64,' . $result->document_revision->file .'" >';
+    // $file = $result->document_revision->file ?? '';
+    // echo '<img src="data:image/gif;base64,' . $file .'" >';
 
     // // In order to render the image correctly it is necessary to know the file_mime_type. 
     // // To collect this data we have to use the get_entry method with the ID of the same document version. 
@@ -53,9 +54,11 @@
     // );
 
 
-    // // Execute the API client getEntry() function call
+    // Execute the API client getEntry() function call
     // $resultMime = $apiClient->getEntry($params);
 
-    // // Render the received binary image
-    // echo '<a download="' . $result->document_revision->filename .'" href="data:'. $resultMime->entry_list[0]->name_value_list->file_mime_type->value .';base64,' . $result->document_revision->file .'" title="Descargar" > Descargar Fichero</a>';
+    // Render the received binary image
+    // $filename = $result->document_revision->filename ?? '';
+    // $fileMimeType = $resultMime->entry_list[0]->name_value_list->file_mime_type->value ?? '';
+    // echo '<a download="' . $filename .'" href="data:'. $fileMimeType .';base64,' . $file .'" title="Descargar" > Descargar Fichero</a>';
 
