@@ -41,6 +41,7 @@
     // $params = array(
     //     'module_name' => 'Contacts',
     //     'module_id' => $contact_id,
+    //     'link_field_name' => 'stic_contacts_relationships_contacts', 
     //     'related_ids' => [$contact_relation_id],
     //);
 

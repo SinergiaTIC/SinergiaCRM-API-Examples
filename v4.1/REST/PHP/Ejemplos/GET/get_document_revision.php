@@ -31,18 +31,14 @@
 
     // $documentRevisionId = '<DOCUMENT_REVISION_ID>';
     // $params = array(
-    //     'i' => $documentRevisionId,
+    //     'id' => $documentRevisionId,
     // );
 
-    // // Execute the call to the corresponding API client function
+    // Execute the call to the corresponding API client function
     // $result = $apiClient->getDocumentRevision($params);
 
-
 // EXAMPLE 2 (It is necessary to activate EXAMPLE 1)
-// Render the received binary image
-
-    // $file = $result->document_revision->file ?? '';
-    // echo '<img src="data:image/gif;base64,' . $file .'" >';
+// GET the file mime type of the revision file and RENDER the received binary image
 
     // // In order to render the image correctly it is necessary to know the file_mime_type. 
     // // To collect this data we have to use the get_entry method with the ID of the same document version. 
@@ -52,13 +48,14 @@
     //     'select_fields' => array('file_mime_type'),
     //     'deleted' => 0,
     // );
-
-
-    // Execute the API client getEntry() function call
+    
+    // // Execute the API client getEntry() function call
     // $resultMime = $apiClient->getEntry($params);
 
-    // Render the received binary image
+    // // Render the received binary image
+    // $file = $result->document_revision->file ?? '';
     // $filename = $result->document_revision->filename ?? '';
     // $fileMimeType = $resultMime->entry_list[0]->name_value_list->file_mime_type->value ?? '';
-    // echo '<a download="' . $filename .'" href="data:'. $fileMimeType .';base64,' . $file .'" title="Descargar" > Descargar Fichero</a>';
+    // echo '<br /><img src="data:' . $fileMimeType .';base64,' . $file .'" ><br />';
+    // echo '<br /><a download="' . $filename .'" href="data:'. $fileMimeType .';base64,' . $file .'" title="Descargar" > Descargar Fichero</a><br />';
 
