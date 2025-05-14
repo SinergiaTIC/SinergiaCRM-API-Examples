@@ -97,7 +97,7 @@
 
     // $params = array(
     //     'module_name' => 'stic_Events',
-    //     'query' => "",
+    //     'query' => "stic_events.status LIKE '%active%' OR stic_events.status LIKE '%preparation%'",
     //     'order_by' => '',
     //     'offset' => 0,
     //     'select_fields' => array(

@@ -171,7 +171,7 @@
     //     'module_name' => 'stic_Events',
     //     "module_id" => '<ID>', 
     //     "link_field_name" => "stic_registrations_stic_events",
-    //     "related_module_query" => "",
+    //     "related_module_query" => "status = 'confirmed'",
     //     "related_fields" => array(
     //         'id',
     //         'name',
