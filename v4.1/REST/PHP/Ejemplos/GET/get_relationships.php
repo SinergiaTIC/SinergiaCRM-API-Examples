@@ -30,17 +30,20 @@
 // EXAMPLE 1
 // Get the id and name of the location related to the event whose id = <ID>
 
-// $params = array(
-//     'module_name' => 'stic_Events',
-//     "module_id" => '<ID>', 
-//     "link_field_name" => "stic_events_fp_event_locationsfp_event_locations_ida",
-//     "related_module_query" => "",
-//     "related_fields" => array(
-//         'id', 
-//         'name'),
-//     "related_module_link_name_to_fields_array" => array(),
-//     "deleted" => 0,
-// );
+    // $params = array(
+    //     'module_name' => 'stic_Events',
+    //     "module_id" => '<ID>', 
+    //     "link_field_name" => "stic_events_fp_event_locationsfp_event_locations_ida",
+    //     "related_module_query" => "",
+    //     "related_fields" => array(
+    //         'id', 
+    //         'name'),
+    //     "related_module_link_name_to_fields_array" => array(),
+    //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',    
+    // );
 
 
 // EXAMPLE 2
@@ -57,6 +60,9 @@
     //         'last_name'),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',    
     // );
 
 
@@ -73,6 +79,9 @@
     //         'name'),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',
     // );
 
 
@@ -89,6 +98,9 @@
     //     ),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',
     // );
 
 
@@ -105,6 +117,9 @@
     //         'document_revision_id'),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',        
     // );
 
 
@@ -122,6 +137,9 @@
     //     ),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',        
     // );
 
 
@@ -140,6 +158,9 @@
     //     ),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',    
     // );
 
 
@@ -150,13 +171,16 @@
     //     'module_name' => 'stic_Events',
     //     "module_id" => '<ID>', 
     //     "link_field_name" => "stic_registrations_stic_events",
-    //     "related_module_query" => "status = 'confirmed'",
+    //     "related_module_query" => "",
     //     "related_fields" => array(
     //         'id',
     //         'name',
     //     ),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',
     // );
 
 
@@ -173,6 +197,9 @@
     //     ),
     //     "related_module_link_name_to_fields_array" => array(),
     //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '', 
+    //     "limit" => '',
     // );
 
 // Execute the call to the corresponding API client function

@@ -47,6 +47,7 @@
     //     'link_name_to_fields_array' => [],
     //     'max_results' => 10,
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
 
@@ -66,6 +67,7 @@
     //     'link_name_to_fields_array' => [],    
     //     'max_results' => 10,
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
 
@@ -86,6 +88,7 @@
     //     'link_name_to_fields_array' => [],        
     //     'max_results' => 10,
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
     
@@ -94,7 +97,7 @@
 
     // $params = array(
     //     'module_name' => 'stic_Events',
-    //     'query' => "stic_events.status LIKE '%active%' OR stic_events.status LIKE '%preparation%'",
+    //     'query' => "",
     //     'order_by' => '',
     //     'offset' => 0,
     //     'select_fields' => array(
@@ -108,6 +111,7 @@
     //     'link_name_to_fields_array' => [],        
     //     'max_results' => 10,
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
 
@@ -134,6 +138,7 @@
     //     ),              
     //     'max_results' => 10,    
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
 
@@ -166,6 +171,7 @@
     //     ),              
     //     'max_results' => 10,    
     //     'deleted' => 0,
+    //     'favorites' => '',
     // );
 
 
@@ -184,6 +190,7 @@
     //     'link_name_to_fields_array' => [],        
     //     'max_results' => 10,
     //     'deleted' => 0,
+    //     'favorites' => '',
     // ); 
 
 // Execute the call to the corresponding API client function
