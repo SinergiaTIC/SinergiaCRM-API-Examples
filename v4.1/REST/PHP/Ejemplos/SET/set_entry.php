@@ -41,16 +41,16 @@
     // $data['first_name'] = 'Test';
     // $data['last_name'] = 'API';
 
-
 // EXAMPLE 2
-// Update email with value <EMAIL> in contact with id = <ID>
+// Update emails with value <EMAIL_Nº> in contact with id = <ID>
 
     // $module = 'Contacts';
     // $data = array();
-    // $data['id'] = '65e40330-84da-512c-2b83-5e830efa3986';
-    // $data['optOut'] = '1'; //para el caso de rehusado
-    // $data['confirm_opt_in'] = 'confirmed-opt-in'; //para el caso de no adherido
-
+    // $data['id'] = '<ID>';
+    // $data['email1'] = 'EMAIL_1@sinergiacrm.org';
+    // $data['email2'] = 'EMAIL_2@sinergiacrm.org';
+    // $data['email3'] = 'EMAIL_3@sinergiacrm.org';
+    // $data['email4'] = 'EMAIL_4@sinergiacrm.org';
 
 // EXAMPLE 3
 // Create a contact indicating a creator user with id = <USER_ID> different from the user who connects to the API.
@@ -190,6 +190,16 @@
         // $data['type'] = 'working';
         // $data['start_date'] = '2024-08-12 22:00:00';
         // $data['end_date'] = '2024-08-13 22:00:00';
+
+
+// EXAMPLE 12
+// Update the opt-out and invalid properties of the primary email of a contact with id = <ID>
+    // $module = 'Contacts';
+    // $data = array();
+    // $data['id'] = '<ID>';
+    // $data['email_opt_out'] = '1'; // Rehusado
+    // $data['invalid_email'] = '1'; // No valido
+
         
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);
