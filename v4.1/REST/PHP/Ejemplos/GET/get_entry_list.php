@@ -76,7 +76,7 @@
 
     // $params = array(
     //     'module_name' => 'Contacts',
-    //     'query' => "contacts.id IN (SELECT bean_id FROM email_addr_bean_rel eabr JOIN email_addresses ea ON (eabr.email_address_id = ea.id) WHERE bean_module = 'Contacts' AND ea.email_address_caps = '<EMAIL>' AND eabr.deleted=0)"
+    //     'query' => "contacts.id IN (SELECT bean_id FROM email_addr_bean_rel eabr JOIN email_addresses ea ON (eabr.email_address_id = ea.id) WHERE bean_module = 'Contacts' AND ea.email_address_caps = '<EMAIL>' AND eabr.deleted=0)",
     //     'order_by' => '',
     //     'offset' => 0,
     //     'select_fields' => array(
