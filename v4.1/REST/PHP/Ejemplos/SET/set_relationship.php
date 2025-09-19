@@ -37,7 +37,7 @@
 // Establish a relationship between a contact with id = <CONTACT_ID> and a contact relationship with id =  <COINTACT_RELATIONSHIP_ID>
 
     // $contact_id = '<CONTACT_ID>';
-    // $contact_relation_id = ' <COINTACT_RELATIONSHIP_ID>';
+    // $contact_relation_id = ' <CONTACT_RELATIONSHIP_ID>';
     // $params = array(
     //     'module_name' => 'Contacts',
     //     'module_id' => $contact_id,
@@ -47,9 +47,9 @@
 
 
 // EXAMPLE 2
-// Establish a relationship between a reservation with id = <RESERVATION_ID> and a resource with id = <RESOURCE_ID>
+// Establish a relationship between a booking with id = <BOOKING_ID> and a resource with id = <RESOURCE_ID>
 
-    // $booking_id = ' <RESERVATION_ID>';
+    // $booking_id = ' <BOOKING_ID>';
     // $resource_id = ' <RESOURCE_ID>';
     // $params = array(
     //     'module_name' => 'stic_Bookings',
