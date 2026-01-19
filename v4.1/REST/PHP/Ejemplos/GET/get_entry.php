@@ -148,6 +148,27 @@
     //     'track_view' => 0,
     // );
 
+// EXAMPLE 7
+// Get the id, name, offer code, offer type, status, territorial scope, account, process end date, assigned user 
+// and responsible of the stic_Job_Offers whose id = <ID>
+
+    // $params = array(
+    //     'module_name' => 'stic_Job_Offers',
+    //     'id' => '<ID>',
+    //     'select_fields' => array(
+    //         'name',
+    //         'offer_code',
+    //         'offer_type',
+    //         'status', 
+    //         'territorial_scope', 
+    //         'stic_job_offers_accounts_name', 
+    //         'process_end_date',
+    //         'assigned_user_name',
+    //         'responsible',
+    //     ),
+    //     'link_name_to_fields_array' => array(),
+    //     'track_view' => 0,
+    // );
 
 // Execute the call to the corresponding API client function
 $apiClient->getEntry($params);

@@ -191,7 +191,34 @@
     //     'max_results' => 10,
     //     'deleted' => 0,
     //     'favorites' => '',
-    // ); 
+    // );
+
+// EXAMPLE 8
+// Get the id, name, offer code, offer type, status, territorial scope, account, process end date, assigned user 
+// and responsible of the first 10 undeleted records from the stic_Job_Offers module with offer type = 'volunteering' and status not closed.
+
+    // $params = array(
+    //     'module_name' => 'stic_Job_Offers',
+    //     'query' => "stic_job_offers.offer_type = 'volunteering' AND stic_job_offers.status NOT LIKE '%closed%'",
+    //     'order_by' => '',
+    //     'offset' => 0,
+    //     'select_fields' => array(
+    //         'id',
+    //         'name',
+    //         'offer_code',
+    //         'offer_type',
+    //         'status', 
+    //         'territorial_scope', 
+    //         'stic_job_offers_accounts_name', 
+    //         'process_end_date',
+    //         'assigned_user_name',
+    //         'responsible',
+    //     ),
+    //     'link_name_to_fields_array' => [],
+    //     'max_results' => 10,
+    //     'deleted' => 0,
+    //     'favorites' => '',
+    // );
 
 // Execute the call to the corresponding API client function
 $apiClient->getEntryList($params);
