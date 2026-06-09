@@ -1,0 +1,437 @@
+<?php
+/**
+ * SuiteCRM / SinergiaCRM API V8 Client
+ *
+ * A lightweight single-file PHP client for the SuiteCRM V8 JSON:API.
+ * Provides two lookup tools:
+ *   1. Fetch active stic_Contacts_Relationships for a contact (with project data)
+ *   2. Retrieve full contact details by ID
+ *
+ * Configuration is read from .env in the same directory.
+ * Copy .env.example to .env and set your credentials.
+ */
+
+define('APP_DIR', __DIR__);
+define('JSONAPI_MIME', 'application/vnd.api+json');
+
+function loadEnv(): array
+{
+    $envFile = APP_DIR . '/.env';
+    $vars = [];
+    if (file_exists($envFile)) {
+        foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+            [$key, $value] = explode('=', $line, 2);
+            $vars[trim($key)] = trim($value);
+        }
+    }
+    return $vars;
+}
+
+$env = loadEnv();
+define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://localhost:8000', '/'));
+define('OAUTH2_CLIENT_ID', $env['OAUTH2_CLIENT_ID'] ?? '');
+define('OAUTH2_CLIENT_SECRET', $env['OAUTH2_CLIENT_SECRET'] ?? '');
+
+function getAccessToken(): string
+{
+    $ch = curl_init(SUITECRM_BASE_URL . '/Api/access_token');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode([
+            'grant_type' => 'client_credentials',
+            'client_id' => OAUTH2_CLIENT_ID,
+            'client_secret' => OAUTH2_CLIENT_SECRET,
+        ]),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: ' . JSONAPI_MIME, 'Accept: ' . JSONAPI_MIME],
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        throw new RuntimeException("Auth failed ($httpCode): $response");
+    }
+    return json_decode($response, true)['access_token'];
+}
+
+function apiGet(string $endpoint, string $token, array $params = []): array
+{
+    $url = SUITECRM_BASE_URL . $endpoint;
+    if ($params) {
+        $url .= '?' . http_build_query($params);
+    }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: ' . JSONAPI_MIME,
+            'Accept: ' . JSONAPI_MIME,
+            'Authorization: Bearer ' . $token,
+        ],
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        throw new RuntimeException("API error ($httpCode): $response");
+    }
+    return json_decode($response, true);
+}
+
+function fetchRelationships(string $contactId): array
+{
+    $token = getAccessToken();
+    $relationships = [];
+    $page = 1;
+
+    while (true) {
+        $data = apiGet("/Api/V8/module/Contacts/$contactId/relationships/stic_contacts_relationships_contacts", $token, [
+            'filter[active][eq]' => '1',
+            'page[number]' => $page,
+            'page[size]' => '50',
+        ]);
+        $items = $data['data'] ?? [];
+        if (empty($items)) {
+            break;
+        }
+        $relationships = array_merge($relationships, $items);
+        $totalPages = $data['meta']['total-pages'] ?? 1;
+        if ($page >= $totalPages) {
+            break;
+        }
+        $page++;
+    }
+
+    $result = [];
+    foreach ($relationships as $rel) {
+        $attrs = $rel['attributes'] ?? [];
+        $projId = $attrs['stic_contacts_relationships_projectproject_ida'] ?? '';
+        $relContactId = $attrs['stic_contacts_relationships_contactscontacts_ida'] ?? '';
+
+        $project = null;
+        if ($projId) {
+            try {
+                $projData = apiGet("/Api/V8/module/Project/$projId", $token);
+                $project = $projData['data']['attributes'] ?? [];
+            } catch (RuntimeException $e) {
+                $project = ['error' => $e->getMessage()];
+            }
+        }
+
+        $result[] = [
+            'id' => $rel['id'],
+            'name' => $attrs['name'] ?? '',
+            'start_date' => $attrs['start_date'] ?? '',
+            'end_date' => $attrs['end_date'] ?? '',
+            'relationship_type' => $attrs['relationship_type'] ?? '',
+            'role' => $attrs['role'] ?? '',
+            'end_reason' => $attrs['end_reason'] ?? '',
+            'other_end_reasons' => $attrs['other_end_reasons'] ?? '',
+            'contact_name' => $attrs['stic_contacts_relationships_contacts_name'] ?? '',
+            'contact_id' => $relContactId,
+            'project_name' => $attrs['stic_contacts_relationships_project_name'] ?? '',
+            'project_id' => $projId,
+            'project' => $project ? [
+                'name' => $project['name'] ?? '',
+                'status' => $project['status'] ?? '',
+                'priority' => $project['priority'] ?? '',
+                'estimated_start_date' => $project['estimated_start_date'] ?? '',
+                'estimated_end_date' => $project['estimated_end_date'] ?? '',
+                'stic_location_c' => $project['stic_location_c'] ?? '',
+                'description' => $project['description'] ?? '',
+            ] : null,
+        ];
+    }
+
+    return ['success' => true, 'count' => count($result), 'data' => $result];
+}
+
+function fetchContact(string $contactId): array
+{
+    $token = getAccessToken();
+    $data = apiGet("/Api/V8/module/Contacts/$contactId", $token, [
+        'fields[Contacts]' => implode(',', [
+            'first_name', 'last_name', 'name', 'birthdate',
+            'phone_mobile', 'phone_home', 'phone_work', 'phone_other', 'phone_fax',
+            'email1', 'email2',
+            'stic_identification_number_c', 'stic_identification_type_c',
+            'stic_gender_c', 'stic_language_c',
+            'primary_address_street', 'primary_address_city', 'primary_address_state',
+            'primary_address_postalcode', 'primary_address_country',
+            'stic_employment_status_c', 'stic_acquisition_channel_c',
+            'title', 'department',
+            'date_entered', 'date_modified',
+            'description',
+        ]),
+    ]);
+
+    $attrs = $data['data']['attributes'] ?? [];
+
+    return ['success' => true, 'data' => [
+        'id' => $data['data']['id'] ?? '',
+        'first_name' => $attrs['first_name'] ?? '',
+        'last_name' => $attrs['last_name'] ?? '',
+        'full_name' => $attrs['name'] ?? '',
+        'birthdate' => $attrs['birthdate'] ?? '',
+        'phone_mobile' => $attrs['phone_mobile'] ?? '',
+        'phone_home' => $attrs['phone_home'] ?? '',
+        'phone_work' => $attrs['phone_work'] ?? '',
+        'phone_other' => $attrs['phone_other'] ?? '',
+        'phone_fax' => $attrs['phone_fax'] ?? '',
+        'email1' => $attrs['email1'] ?? '',
+        'email2' => $attrs['email2'] ?? '',
+        'stic_identification_number_c' => $attrs['stic_identification_number_c'] ?? '',
+        'stic_identification_type_c' => $attrs['stic_identification_type_c'] ?? '',
+        'stic_gender_c' => $attrs['stic_gender_c'] ?? '',
+        'stic_language_c' => $attrs['stic_language_c'] ?? '',
+        'primary_address_street' => $attrs['primary_address_street'] ?? '',
+        'primary_address_city' => $attrs['primary_address_city'] ?? '',
+        'primary_address_state' => $attrs['primary_address_state'] ?? '',
+        'primary_address_postalcode' => $attrs['primary_address_postalcode'] ?? '',
+        'primary_address_country' => $attrs['primary_address_country'] ?? '',
+        'stic_employment_status_c' => $attrs['stic_employment_status_c'] ?? '',
+        'stic_acquisition_channel_c' => $attrs['stic_acquisition_channel_c'] ?? '',
+        'title' => $attrs['title'] ?? '',
+        'department' => $attrs['department'] ?? '',
+        'date_entered' => $attrs['date_entered'] ?? '',
+        'date_modified' => $attrs['date_modified'] ?? '',
+        'description' => $attrs['description'] ?? '',
+    ]];
+}
+
+// --- Router ---
+
+$action = $_GET['action'] ?? null;
+
+if ($action) {
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        if ($action === 'getRelationships' && !empty($_GET['contact_id'])) {
+            echo json_encode(fetchRelationships($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        } elseif ($action === 'getContact' && !empty($_GET['contact_id'])) {
+            echo json_encode(fetchContact($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing or invalid parameters']);
+        }
+    } catch (RuntimeException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// --- HTML UI ---
+header('Content-Type: text/html; charset=utf-8');
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SinergiaCRM API V8 Client</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; color: #222; background: #f8f9fa; }
+        h1 { font-size: 1.4rem; margin-bottom: 0.3rem; }
+        .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 768px) { .cards { grid-template-columns: 1fr; } }
+
+        .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .card h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+        .card p.desc { color: #666; font-size: 0.85rem; margin: 0 0 1rem; }
+
+        .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .input-group input { flex: 1; padding: 0.55rem 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+        .input-group input:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+        button { padding: 0.55rem 1.2rem; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-primary:disabled { background: #a0c4e8; cursor: not-allowed; }
+        .btn-secondary { background: #5a9e6f; color: #fff; }
+        .btn-secondary:hover { background: #4a8e5f; }
+        .btn-secondary:disabled { background: #a8d4b4; cursor: not-allowed; }
+
+        .result { margin-top: 1rem; }
+        .loading { color: #888; font-style: italic; padding: 1rem 0; }
+        .error { background: #fff0f0; border: 1px solid #fcc; color: #c00; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+
+        .info-card { background: #f0f7ff; border: 1px solid #c8ddf0; border-radius: 6px; padding: 1rem; margin-bottom: 0.75rem; }
+        .info-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+        .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 1rem; font-size: 0.85rem; }
+        .info-grid .key { color: #666; text-align: right; }
+        .info-grid .val { color: #222; word-break: break-all; }
+
+        .rel-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; margin-bottom: 0.75rem; }
+        .rel-card .rel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .rel-card .rel-name { font-weight: 600; }
+        .rel-card .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-type { background: #e8e0f0; color: #5a3e85; }
+
+        .rel-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 1rem; font-size: 0.82rem; }
+        .rel-detail .k { color: #888; }
+
+        .project-section { margin-top: 0.75rem; border-top: 1px dashed #ddd; padding-top: 0.75rem; }
+        .project-section h4 { font-size: 0.85rem; margin: 0 0 0.4rem; color: #555; }
+
+        .summary { color: #666; font-size: 0.85rem; margin-bottom: 0.75rem; }
+    </style>
+</head>
+<body>
+    <h1>SinergiaCRM API V8 Client</h1>
+    <p class="subtitle">Base URL: <?= htmlspecialchars(SUITECRM_BASE_URL) ?></p>
+
+    <div class="cards">
+        <div class="card">
+            <h2>Active Contacts Relationships by Contact</h2>
+            <p class="desc">Enter a contact ID to fetch all active <code>stic_Contacts_Relationships</code> with related project details.</p>
+            <div class="input-group">
+                <input type="text" id="relContactIdInput" placeholder="Contact ID (e.g. a830067e-5e85-11f1-b59b-b216769ad5d8)">
+                <button class="btn-primary" id="btnRelationships" onclick="searchRelationships()">Search</button>
+            </div>
+            <div id="relResult" class="result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Contact Details by ID</h2>
+            <p class="desc">Enter a contact ID to fetch basic information (name, phone, email, identification, etc).</p>
+            <div class="input-group">
+                <input type="text" id="contactIdInput" placeholder="Contact ID (e.g. 0000088f-0c84-56ae-8561-6a0cd328fd97)">
+                <button class="btn-secondary" id="btnContact" onclick="searchContact()">Search</button>
+            </div>
+            <div id="contactResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function searchRelationships() {
+            const contactId = document.getElementById('relContactIdInput').value.trim();
+            const btn = document.getElementById('btnRelationships');
+            const result = document.getElementById('relResult');
+            if (!contactId) { result.innerHTML = '<div class="error">Please enter a contact ID.</div>'; return; }
+
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const resp = await fetch(`?action=getRelationships&contact_id=${encodeURIComponent(contactId)}`);
+                const data = await resp.json();
+                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
+                if (!data.data.length) { result.innerHTML = '<div class="summary">No active relationships found for this contact.</div>'; return; }
+
+                let html = `<div class="summary">Found ${data.count} active relationship(s)</div>`;
+                data.data.forEach(rel => { html += renderRel(rel); });
+                result.innerHTML = html;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function searchContact() {
+            const contactId = document.getElementById('contactIdInput').value.trim();
+            const btn = document.getElementById('btnContact');
+            const result = document.getElementById('contactResult');
+            if (!contactId) { result.innerHTML = '<div class="error">Please enter a contact ID.</div>'; return; }
+
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const resp = await fetch(`?action=getContact&contact_id=${encodeURIComponent(contactId)}`);
+                const data = await resp.json();
+                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
+
+                const c = data.data;
+                let html = '<div class="info-card">';
+                html += `<h3>${esc(c.full_name || c.first_name + ' ' + c.last_name)}</h3>`;
+                html += '<div class="info-grid">';
+                html += row('ID', c.id);
+                html += row('First Name', c.first_name);
+                html += row('Last Name', c.last_name);
+                html += row('Birthdate', c.birthdate);
+                html += row('Title', c.title);
+                html += row('Department', c.department);
+                html += row('Mobile Phone', c.phone_mobile);
+                html += row('Home Phone', c.phone_home);
+                html += row('Work Phone', c.phone_work);
+                html += row('Other Phone', c.phone_other);
+                html += row('Fax', c.phone_fax);
+                html += row('Email (primary)', c.email1);
+                html += row('Email (secondary)', c.email2);
+                html += row('ID Number', c.stic_identification_number_c);
+                html += row('ID Type', c.stic_identification_type_c);
+                html += row('Gender', c.stic_gender_c);
+                html += row('Language', c.stic_language_c);
+                html += row('Employment', c.stic_employment_status_c);
+                html += row('Acq. Channel', c.stic_acquisition_channel_c);
+                html += row('Address', c.primary_address_street);
+                html += row('City', c.primary_address_city);
+                html += row('State', c.primary_address_state);
+                html += row('Postal Code', c.primary_address_postalcode);
+                html += row('Country', c.primary_address_country);
+                html += row('Date Created', c.date_entered);
+                html += row('Date Modified', c.date_modified);
+                html += row('Description', c.description);
+                html += '</div></div>';
+                result.innerHTML = html;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function renderRel(rel) {
+            let html = '<div class="rel-card">';
+            html += `<div class="rel-header"><span class="rel-name">${esc(rel.name || '(unnamed)')}</span>`;
+            html += '<span class="badge badge-active">Active</span>';
+            if (rel.relationship_type) html += ` <span class="badge badge-type">${esc(rel.relationship_type)}</span>`;
+            html += '</div><div class="rel-detail">';
+            html += `<div class="k">ID</div><div>${esc(rel.id)}</div>`;
+            html += `<div class="k">Contact</div><div>${esc(rel.contact_name)} (${esc(rel.contact_id)})</div>`;
+            html += `<div class="k">Start Date</div><div>${esc(rel.start_date || '—')}</div>`;
+            html += `<div class="k">End Date</div><div>${esc(rel.end_date || '—')}</div>`;
+            html += `<div class="k">Role</div><div>${esc(rel.role || '—')}</div>`;
+            html += `<div class="k">End Reason</div><div>${esc(rel.end_reason || '—')}</div>`;
+            html += `<div class="k">Other End Reasons</div><div>${esc(rel.other_end_reasons || '—')}</div>`;
+            html += '</div>';
+
+            if (rel.project) {
+                const p = rel.project;
+                html += '<div class="project-section"><h4>Related Project</h4><div class="rel-detail">';
+                html += `<div class="k">Name</div><div>${esc(p.name || '—')}</div>`;
+                html += `<div class="k">Status</div><div>${esc(p.status || '—')}</div>`;
+                html += `<div class="k">Priority</div><div>${esc(p.priority || '—')}</div>`;
+                html += `<div class="k">Est. Start</div><div>${esc(p.estimated_start_date || '—')}</div>`;
+                html += `<div class="k">Est. End</div><div>${esc(p.estimated_end_date || '—')}</div>`;
+                html += `<div class="k">Location</div><div>${esc(p.stic_location_c || '—')}</div>`;
+                html += `<div class="k">Description</div><div>${esc(p.description || '—')}</div>`;
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function row(label, val) {
+            if (!val) return '';
+            return `<div class="key">${esc(label)}</div><div class="val">${esc(String(val))}</div>`;
+        }
+
+        function esc(s) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(s));
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
