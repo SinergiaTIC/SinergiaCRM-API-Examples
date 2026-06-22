@@ -1,16 +1,20 @@
 <?php
 /**
- * Configuration file — edit these values for your CRM.
- * Copy this file to config.php (ignored by git) and set your credentials.
+ * Configuration template — copy to config.php and edit.
+ * Run: cp config.dist.php config.php
  */
 
 return [
-    // URL of the SinergiaCRM instance
-    'crm_url' => getenv('CRM_URL') ?: 'http://localhost:8000/sinergiacrm',
+    // Public CRM URL (browser-accessible)
+    'crm_url'       => getenv('CRM_URL')          ?: 'http://localhost:8000/sinergiacrm',
 
-    // OAuth2 Client credentials — create in Administration → OAuth2 Clients and Tokens
-    'client_id'     => getenv('OAUTH_CLIENT_ID')     ?: 'your-oauth2-client-uuid',
+    // Docker internal URL for server-to-server calls (omit if not using Docker)
+    // PHP-FPM can reach nginx via this hostname for token exchange
+    'crm_internal'  => getenv('CRM_INTERNAL_URL') ?: 'http://sw-webserver/sinergiacrm',
 
-    // This app's callback URL (must match the registered redirect_uri in OAuth2Clients)
-    'redirect_uri'  => getenv('OAUTH_REDIRECT_URI')  ?: 'http://localhost:8000/clientOauth/callback.php',
+    // OAuth2 Client UUID — create in CRM: Administration → OAuth2 Clients
+    'client_id'     => getenv('OAUTH_CLIENT_ID')  ?: 'your-oauth2-client-uuid',
+
+    // Must match the redirect_uri on the OAuth2 Client exactly
+    'redirect_uri'  => getenv('OAUTH_REDIRECT_URI') ?: 'http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php',
 ];

@@ -1,38 +1,22 @@
 <?php
-/**
- * OAuth Callback Handler
- *
- * Receives the authorization code from the CRM, exchanges it for tokens,
- * and displays the authenticated user's active contact relationships.
- * Also queries the V8 Meta API to show available relationship types.
- */
-
 $config = require 'config.php';
-
-$crmBase    = rtrim($config['crm_url'], '/');
+$crmBase    = rtrim(($config['crm_internal'] ?? $config['crm_url']), '/');
 $tokenUrl   = $crmBase . '/index.php?entryPoint=sticPortalOAuthToken';
-$metaUrl    = $crmBase . '/../Api/V8/meta/fields/stic_Contacts_Relationships';
 $clientId   = $config['client_id'];
 $redirectUri = $config['redirect_uri'];
-
 $error = '';
-$tokens = null;
-$relationships = [];
-$relationshipTypes = [];
+$data  = null;
 
-// Step 1: Exchange authorization code for tokens
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
     $code  = $_GET['code'];
     $state = $_GET['state'] ?? '';
-
-    // CSRF protection
     if ($state !== ($_COOKIE['oauth_demo_state'] ?? '')) {
-        $error = 'Invalid state parameter. Possible CSRF attack.';
+        $error = 'Invalid state parameter. Possible CSRF attack or expired session.';
     } else {
         $ch = curl_init($tokenUrl);
         curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query([
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query([
                 'grant_type'    => 'authorization_code',
                 'code'          => $code,
                 'client_id'     => $clientId,
@@ -43,117 +27,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
         ]);
         $response = curl_exec($ch);
         curl_close($ch);
-
         if (!$response) {
-            $error = 'Failed to connect to the token endpoint.';
+            $error = 'Failed to connect to token endpoint.';
         } else {
-            $tokens = json_decode($response, true);
-
-            if ($tokens && !isset($tokens['error'])) {
-                // Relationships are returned directly in the token response
-                $relationships = $tokens['relationships'] ?? [];
-
-                // Step 2: Fetch relationship type options from V8 Meta API
-                $ch = curl_init($metaUrl);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT        => 10,
-                ]);
-                $meta = json_decode(curl_exec($ch), true);
-                curl_close($ch);
-
-                $fields = $meta['data']['attributes']['fields'] ?? [];
-                foreach ($fields as $field) {
-                    if (($field['name'] ?? '') === 'relationship_type') {
-                        $relationshipTypes = $field['options'] ?? [];
-                        break;
-                    }
-                }
-            }
+            $data = json_decode($response, true);
         }
     }
-    // Clean up CSRF cookie
     setcookie('oauth_demo_state', '', time() - 3600, '/');
 }
+
+function h($s) { return htmlspecialchars((string)$s); }
+function tableVal($val) { return $val === null || $val === '' ? '<em style="color:#aaa">—</em>' : h($val); }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>OAuth Callback — SinergiaCRM Demo</title>
-    <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px}
-        .card{background:#fff;max-width:750px;width:100%;margin:20px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:30px}
-        h1{font-size:20px;margin-bottom:15px;color:#1976d2}
-        h2{font-size:15px;margin:20px 0 10px;border-bottom:1px solid #eee;padding-bottom:5px}
-        .msg{padding:10px;border-radius:4px;margin-bottom:15px;font-size:13px}
-        .msg-error{background:#fdecea;color:#c62828}
-        .msg-success{background:#e8f5e9;color:#2e7d32}
-        .box{margin-bottom:10px}
-        .box label{font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:3px}
-        .box code{display:block;background:#f5f5f5;padding:8px 10px;border-radius:4px;font-size:11px;word-break:break-all}
-        .links{margin-top:15px;font-size:13px}
-        .links a{color:#1976d2;text-decoration:none}
-        table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
-        th{background:#f5f5f5;padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:12px;color:#555}
-        td{padding:8px 10px;border-bottom:1px solid #eee}
-        .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#e3f2fd;color:#1565c0}
-        .tags{margin-top:10px}
-        .tag{display:inline-block;padding:3px 10px;margin:2px;border-radius:12px;font-size:11px;background:#e8f5e9;color:#2e7d32}
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAuth Callback — SinergiaCRM</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px}
+.card{background:#fff;max-width:780px;width:100%;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:30px}
+h1{font-size:20px;margin-bottom:15px;color:#1976d2}
+h2{font-size:15px;margin:20px 0 8px;border-bottom:1px solid #e0e0e0;padding-bottom:5px;color:#333}
+h3{font-size:13px;margin:15px 0 6px;color:#666}
+.msg{padding:10px 14px;border-radius:4px;margin-bottom:15px;font-size:13px}
+.msg-error{background:#fdecea;color:#c62828}
+.msg-success{background:#e8f5e9;color:#2e7d32}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px}
+.grid dt{color:#888;font-weight:600}
+.grid dd{margin-bottom:2px;word-break:break-all}
+code.raw{display:block;background:#263238;color:#89ddff;padding:10px 14px;border-radius:4px;font-size:11px;word-break:break-all;overflow-x:auto;margin-top:8px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #eee}
+th{background:#f5f5f5;font-weight:600;color:#555}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-active{background:#c8e6c9;color:#2e7d32}
+.badge-ended{background:#ffcdd2;color:#c62828}
+.links{margin-top:20px;font-size:13px}
+.links a{color:#1976d2;text-decoration:none;margin-right:12px}
+.toggle{cursor:pointer;font-size:11px;color:#1976d2;margin-top:6px;display:inline-block}
+.json-hidden{display:none}
+</style>
 </head>
 <body>
 <div class="card">
-    <h1>OAuth Callback</h1>
 
-    <?php if ($error): ?>
-        <div class="msg msg-error"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
+<h1>OAuth Callback</h1>
 
-    <?php if ($tokens && !isset($tokens['error'])): ?>
-        <div class="msg msg-success">Authentication successful!</div>
+<?php if ($error): ?>
+  <div class="msg msg-error"><?= h($error) ?></div>
+<?php endif; ?>
 
-        <h2>Tokens</h2>
-        <div class="box"><label>Access Token</label><code><?= htmlspecialchars($tokens['access_token']) ?></code></div>
-        <div class="box"><label>Refresh Token</label><code><?= htmlspecialchars($tokens['refresh_token']) ?></code></div>
-        <div class="box"><label>Expires in</label><code><?= $tokens['expires_in'] ?> seconds</code></div>
+<?php if ($data && !isset($data['error'])): ?>
+  <div class="msg msg-success">Authentication successful! Here is everything your app received.</div>
 
-        <?php if (!empty($relationships)): ?>
-            <h2>Active Relationships (<?= count($relationships) ?>)</h2>
-            <table>
-                <thead><tr><th>Name</th><th>Type</th><th>Start</th><th>Role</th><th>Project</th></tr></thead>
-                <tbody>
-                <?php foreach ($relationships as $r): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($r['name'] ?? '-') ?></td>
-                        <td><span class="badge"><?= htmlspecialchars($r['relationship_type'] ?? '-') ?></span></td>
-                        <td><?= htmlspecialchars($r['start_date'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($r['role'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($r['project_name'] ?? '-') ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
+  <h2>Tokens</h2>
+  <div class="grid">
+    <dt>Access Token</dt><dd><code><?= h($data['access_token']) ?></code></dd>
+    <dt>Expires in</dt><dd><?= h($data['expires_in']) ?> seconds</dd>
+    <dt>Token Type</dt><dd><?= h($data['token_type']) ?></dd>
+    <dt>Refresh Token</dt><dd><code><?= h($data['refresh_token']) ?></code></dd>
+    <dt>Portal ID</dt><dd><code><?= h($data['portal_id']) ?></code></dd>
+  </div>
 
-        <?php if (!empty($relationshipTypes)): ?>
-            <h2>Available Relationship Types (V8 Meta API)</h2>
-            <div class="tags">
-            <?php foreach ($relationshipTypes as $opt):
-                $label = is_array($opt) ? ($opt['label'] ?? $opt['name'] ?? '') : $opt;
-            ?>
-                <span class="tag"><?= htmlspecialchars($label) ?></span>
-            <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
+  <?php if (!empty($data['contact'])): $c = $data['contact']; ?>
+  <h2>Contact Information</h2>
+  <div class="grid">
+    <dt>ID</dt><dd><code><?= h($c['id']) ?></code></dd>
+    <dt>First Name</dt><dd><?= tableVal($c['first_name']) ?></dd>
+    <dt>Last Name</dt><dd><?= tableVal($c['last_name']) ?></dd>
+    <dt>Title</dt><dd><?= tableVal($c['title']) ?></dd>
+    <dt>Department</dt><dd><?= tableVal($c['department']) ?></dd>
+    <dt>Phone Mobile</dt><dd><?= tableVal($c['phone_mobile']) ?></dd>
+    <dt>Phone Work</dt><dd><?= tableVal($c['phone_work']) ?></dd>
+    <dt>Phone Home</dt><dd><?= tableVal($c['phone_home']) ?></dd>
+    <dt>Description</dt><dd><?= tableVal($c['description']) ?></dd>
+    <dt>Portal Username</dt><dd><?= tableVal($c['stic_portal_username_c']) ?></dd>
+    <dt>Portal Enabled</dt><dd><?= h($c['stic_portal_enabled_c']) ?></dd>
+    <dt>Last Login</dt><dd><?= tableVal($c['stic_portal_last_login_c']) ?></dd>
+    <dt>Failed Attempts</dt><dd><?= h($c['stic_portal_failed_attempts_c']) ?></dd>
+  </div>
+  <?php endif; ?>
 
-    <?php elseif ($tokens && isset($tokens['error'])): ?>
-        <div class="msg msg-error">Token exchange failed: <?= htmlspecialchars($tokens['error']) ?></div>
-    <?php endif; ?>
+  <h2>Relationships (<?= count($data['relationships']) ?>)</h2>
+  <?php if (!empty($data['relationships'])): ?>
+  <table>
+    <thead><tr>
+      <th>Name</th><th>Type</th><th>Start Date</th><th>End Date</th><th>Role</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+    <?php foreach ($data['relationships'] as $r): ?>
+      <tr>
+        <td><?= h($r['name'] ?? '') ?></td>
+        <td><?= h($r['relationship_type'] ?? '') ?></td>
+        <td><?= tableVal($r['start_date']) ?></td>
+        <td><?= tableVal($r['end_date']) ?></td>
+        <td><?= h($r['role'] ?? '') ?></td>
+        <td>
+          <?php if (empty($r['end_date']) || $r['end_date'] === '0000-00-00'): ?>
+            <span class="badge badge-active">Active</span>
+          <?php else: ?>
+            <span class="badge badge-ended">Ended</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php else: ?>
+    <p style="color:#888;font-size:12px;margin-top:8px">No relationships found for this contact.</p>
+  <?php endif; ?>
 
-    <div class="links"><a href="index.php">Try again</a></div>
+  <span class="toggle" onclick="var el=document.getElementById('rawjson');el.classList.toggle('json-hidden');this.textContent=el.classList.contains('json-hidden')?'Show raw JSON':'Hide raw JSON'">Show raw JSON</span>
+  <pre class="raw json-hidden" id="rawjson"><?= h(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></pre>
+
+  <p style="font-size:12px;color:#888;margin-top:12px">
+    Use the <strong>access_token</strong> as a Bearer token to call the SuiteCRM V8 API.<br>
+    Example: <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px">curl -H "Authorization: Bearer <?= h(substr($data['access_token'], 0, 20)) ?>..." <?= h($config['crm_url'] . '/Api/V8/custom/...') ?></code>
+  </p>
+
+<?php elseif ($data && isset($data['error'])): ?>
+  <div class="msg msg-error">Token exchange failed: <?= h($data['error']) ?>
+  <?php if (!empty($data['message'])): ?><br><small><?= h($data['message']) ?></small><?php endif; ?>
+  </div>
+<?php endif; ?>
+
+<div class="links">
+  <a href="index.php">Try again</a>
+  <a href="<?= h(basename(__FILE__)) ?>">Reload</a>
+</div>
+
 </div>
 </body>
 </html>

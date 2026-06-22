@@ -3,11 +3,9 @@
  * SuiteCRM / SinergiaCRM API V8 Client
  *
  * A lightweight single-file PHP client for the SuiteCRM V8 JSON:API.
- * Provides four lookup tools:
+ * Provides two lookup tools:
  *   1. Fetch active stic_Contacts_Relationships for a contact (with project data)
  *   2. Retrieve full contact details by ID
- *   3. Retrieve available enum values for relationship_type field
- *   4. List all available modules via meta/modules
  *
  * Configuration is read from .env in the same directory.
  * Copy .env.example to .env and set your credentials.
@@ -154,22 +152,6 @@ function fetchRelationships(string $contactId): array
     return ['success' => true, 'count' => count($result), 'data' => $result];
 }
 
-function fetchRelationshipTypes(): array
-{
-    $token = getAccessToken();
-    $data = apiGet('/Api/V8/custom/enum/stic_contacts_relationships_types_list', $token);
-
-    return $data;
-}
-
-function fetchModules(): array
-{
-    $token = getAccessToken();
-    $data = apiGet('/Api/V8/meta/modules', $token);
-
-    return $data;
-}
-
 function fetchContact(string $contactId): array
 {
     $token = getAccessToken();
@@ -234,10 +216,6 @@ if ($action) {
             echo json_encode(fetchRelationships($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } elseif ($action === 'getContact' && !empty($_GET['contact_id'])) {
             echo json_encode(fetchContact($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } elseif ($action === 'getRelationshipTypes') {
-            echo json_encode(fetchRelationshipTypes(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } elseif ($action === 'getModules') {
-            echo json_encode(fetchModules(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } else {
             http_response_code(400);
             echo json_encode(['error' => 'Missing or invalid parameters']);
@@ -266,9 +244,6 @@ header('Content-Type: text/html; charset=utf-8');
         .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         @media (max-width: 768px) { .cards { grid-template-columns: 1fr; } }
 
-        .cards-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        @media (max-width: 768px) { .cards-bottom { grid-template-columns: 1fr; } }
-
         .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
         .card h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
         .card p.desc { color: #666; font-size: 0.85rem; margin: 0 0 1rem; }
@@ -283,12 +258,6 @@ header('Content-Type: text/html; charset=utf-8');
         .btn-secondary { background: #5a9e6f; color: #fff; }
         .btn-secondary:hover { background: #4a8e5f; }
         .btn-secondary:disabled { background: #a8d4b4; cursor: not-allowed; }
-        .btn-accent { background: #e07b39; color: #fff; }
-        .btn-accent:hover { background: #c96a2e; }
-        .btn-accent:disabled { background: #f0c4a8; cursor: not-allowed; }
-        .btn-purple { background: #7b4fbf; color: #fff; }
-        .btn-purple:hover { background: #6a3fa5; }
-        .btn-purple:disabled { background: #c4a8e0; cursor: not-allowed; }
 
         .result { margin-top: 1rem; }
         .loading { color: #888; font-style: italic; padding: 1rem 0; }
@@ -314,21 +283,6 @@ header('Content-Type: text/html; charset=utf-8');
         .project-section h4 { font-size: 0.85rem; margin: 0 0 0.4rem; color: #555; }
 
         .summary { color: #666; font-size: 0.85rem; margin-bottom: 0.75rem; }
-
-        .enum-list { list-style: none; padding: 0; margin: 0; }
-        .enum-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid #eee; font-size: 0.85rem; }
-        .enum-item:last-child { border-bottom: none; }
-        .enum-key { font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 3px; color: #333; font-size: 0.8rem; min-width: 120px; text-align: center; }
-        .enum-value { color: #444; }
-
-        .module-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 0.5rem 0; }
-        .module-table th { text-align: left; padding: 0.4rem 0.6rem; background: #f0f0f0; color: #555; font-weight: 600; position: sticky; top: 0; }
-        .module-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #eee; }
-        .module-table tr:hover td { background: #fafafa; }
-        .module-scroll { max-height: 420px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 4px; }
-
-        .search-box { margin-bottom: 0.75rem; }
-        .search-box input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -354,22 +308,6 @@ header('Content-Type: text/html; charset=utf-8');
                 <button class="btn-secondary" id="btnContact" onclick="searchContact()">Search</button>
             </div>
             <div id="contactResult" class="result"></div>
-        </div>
-    </div>
-
-    <div class="cards-bottom">
-        <div class="card">
-            <h2>Relationship Type Enum Values</h2>
-            <p class="desc">Retrieve all available enum items for the <code>relationship_type</code> field of <code>stic_Contacts_Relationships</code> (list: <code>stic_contacts_relationships_types_list</code>).</p>
-            <button class="btn-accent" id="btnEnumTypes" onclick="fetchEnumTypes()">Fetch Enum Types</button>
-            <div id="enumResult" class="result"></div>
-        </div>
-
-        <div class="card">
-            <h2>Available Modules</h2>
-            <p class="desc">Fetch all available modules from <code>/Api/V8/meta/modules</code> with labels and ACL permissions.</p>
-            <button class="btn-purple" id="btnModules" onclick="fetchModules()">Fetch Modules</button>
-            <div id="moduleResult" class="result"></div>
         </div>
     </div>
 
@@ -453,76 +391,6 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
-        async function fetchEnumTypes() {
-            const btn = document.getElementById('btnEnumTypes');
-            const result = document.getElementById('enumResult');
-
-            btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
-
-            try {
-                const resp = await fetch('?action=getRelationshipTypes');
-                const data = await resp.json();
-                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
-
-                let html = '<div class="summary">Available <code>relationship_type</code> enum values:</div>';
-                html += '<ul class="enum-list">';
-                let count = 0;
-                for (const [key, label] of Object.entries(data.data)) {
-                    html += `<li class="enum-item"><span class="enum-key">${esc(key || '(empty)')}</span><span class="enum-value">${esc(label)}</span></li>`;
-                    count++;
-                }
-                html += '</ul>';
-                html += `<div class="summary" style="margin-top:0.5rem">${count} enum item(s) total</div>`;
-                result.innerHTML = html;
-            } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function fetchModules() {
-            const btn = document.getElementById('btnModules');
-            const result = document.getElementById('moduleResult');
-
-            btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
-
-            try {
-                const resp = await fetch('?action=getModules');
-                const data = await resp.json();
-                const modules = data.data?.attributes;
-                if (!modules) { result.innerHTML = '<div class="error">No modules returned</div>'; return; }
-
-                const entries = Object.entries(modules);
-                let html = `<div class="summary">${entries.length} modules available</div>`;
-                html += '<div class="search-box"><input type="text" id="moduleFilter" placeholder="Filter modules..." oninput="filterModuleTable()"></div>';
-                html += '<div class="module-scroll"><table class="module-table" id="moduleTable">';
-                html += '<thead><tr><th>Module</th><th>Label</th><th>ACL</th></tr></thead><tbody>';
-                for (const [key, val] of entries) {
-                    const label = val.label || '';
-                    const access = val.access || [];
-                    html += `<tr data-name="${esc(key)}"><td><code>${esc(key)}</code></td><td>${esc(label)}</td><td>${esc(access.join(', '))}</td></tr>`;
-                }
-                html += '</tbody></table></div>';
-                result.innerHTML = html;
-            } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function filterModuleTable() {
-            const filter = (document.getElementById('moduleFilter')?.value || '').toLowerCase();
-            const rows = document.querySelectorAll('#moduleTable tbody tr');
-            rows.forEach(row => {
-                const name = (row.getAttribute('data-name') || '').toLowerCase();
-                row.style.display = name.includes(filter) ? '' : 'none';
-            });
-        }
-
         function renderRel(rel) {
             let html = '<div class="rel-card">';
             html += `<div class="rel-header"><span class="rel-name">${esc(rel.name || '(unnamed)')}</span>`;
@@ -567,3 +435,4 @@ header('Content-Type: text/html; charset=utf-8');
     </script>
 </body>
 </html>
+test
