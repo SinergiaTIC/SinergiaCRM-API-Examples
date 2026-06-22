@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SuiteCRM / SinergiaCRM API V8 Client
  *
@@ -175,16 +176,32 @@ function fetchContact(string $contactId): array
     $token = getAccessToken();
     $data = apiGet("/Api/V8/module/Contacts/$contactId", $token, [
         'fields[Contacts]' => implode(',', [
-            'first_name', 'last_name', 'name', 'birthdate',
-            'phone_mobile', 'phone_home', 'phone_work', 'phone_other', 'phone_fax',
-            'email1', 'email2',
-            'stic_identification_number_c', 'stic_identification_type_c',
-            'stic_gender_c', 'stic_language_c',
-            'primary_address_street', 'primary_address_city', 'primary_address_state',
-            'primary_address_postalcode', 'primary_address_country',
-            'stic_employment_status_c', 'stic_acquisition_channel_c',
-            'title', 'department',
-            'date_entered', 'date_modified',
+            'first_name',
+            'last_name',
+            'name',
+            'birthdate',
+            'phone_mobile',
+            'phone_home',
+            'phone_work',
+            'phone_other',
+            'phone_fax',
+            'email1',
+            'email2',
+            'stic_identification_number_c',
+            'stic_identification_type_c',
+            'stic_gender_c',
+            'stic_language_c',
+            'primary_address_street',
+            'primary_address_city',
+            'primary_address_state',
+            'primary_address_postalcode',
+            'primary_address_country',
+            'stic_employment_status_c',
+            'stic_acquisition_channel_c',
+            'title',
+            'department',
+            'date_entered',
+            'date_modified',
             'description',
         ]),
     ]);
@@ -251,86 +268,365 @@ if ($action) {
 
 // --- HTML UI ---
 header('Content-Type: text/html; charset=utf-8');
-?><!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SinergiaCRM API V8 Client</title>
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; color: #222; background: #f8f9fa; }
-        h1 { font-size: 1.4rem; margin-bottom: 0.3rem; }
-        .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
-        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 768px) { .cards { grid-template-columns: 1fr; } }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            color: #222;
+            background: #f8f9fa;
+        }
 
-        .cards-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        @media (max-width: 768px) { .cards-bottom { grid-template-columns: 1fr; } }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 0.3rem;
+        }
 
-        .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
-        .card h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
-        .card p.desc { color: #666; font-size: 0.85rem; margin: 0 0 1rem; }
+        .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
 
-        .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-        .input-group input { flex: 1; padding: 0.55rem 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
-        .input-group input:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
-        button { padding: 0.55rem 1.2rem; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500; }
-        .btn-primary { background: #4a90d9; color: #fff; }
-        .btn-primary:hover { background: #3a7bc8; }
-        .btn-primary:disabled { background: #a0c4e8; cursor: not-allowed; }
-        .btn-secondary { background: #5a9e6f; color: #fff; }
-        .btn-secondary:hover { background: #4a8e5f; }
-        .btn-secondary:disabled { background: #a8d4b4; cursor: not-allowed; }
-        .btn-accent { background: #e07b39; color: #fff; }
-        .btn-accent:hover { background: #c96a2e; }
-        .btn-accent:disabled { background: #f0c4a8; cursor: not-allowed; }
-        .btn-purple { background: #7b4fbf; color: #fff; }
-        .btn-purple:hover { background: #6a3fa5; }
-        .btn-purple:disabled { background: #c4a8e0; cursor: not-allowed; }
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
 
-        .result { margin-top: 1rem; }
-        .loading { color: #888; font-style: italic; padding: 1rem 0; }
-        .error { background: #fff0f0; border: 1px solid #fcc; color: #c00; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+        @media (max-width: 768px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
 
-        .info-card { background: #f0f7ff; border: 1px solid #c8ddf0; border-radius: 6px; padding: 1rem; margin-bottom: 0.75rem; }
-        .info-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
-        .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 1rem; font-size: 0.85rem; }
-        .info-grid .key { color: #666; text-align: right; }
-        .info-grid .val { color: #222; word-break: break-all; }
+        .cards-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
 
-        .rel-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; margin-bottom: 0.75rem; }
-        .rel-card .rel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-        .rel-card .rel-name { font-weight: 600; }
-        .rel-card .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
-        .badge-active { background: #d4edda; color: #155724; }
-        .badge-type { background: #e8e0f0; color: #5a3e85; }
+        @media (max-width: 768px) {
+            .cards-bottom {
+                grid-template-columns: 1fr;
+            }
+        }
 
-        .rel-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 1rem; font-size: 0.82rem; }
-        .rel-detail .k { color: #888; }
+        .card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
 
-        .project-section { margin-top: 0.75rem; border-top: 1px dashed #ddd; padding-top: 0.75rem; }
-        .project-section h4 { font-size: 0.85rem; margin: 0 0 0.4rem; color: #555; }
+        .card h2 {
+            font-size: 1.1rem;
+            margin: 0 0 0.75rem;
+        }
 
-        .summary { color: #666; font-size: 0.85rem; margin-bottom: 0.75rem; }
+        .card p.desc {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 1rem;
+        }
 
-        .enum-list { list-style: none; padding: 0; margin: 0; }
-        .enum-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid #eee; font-size: 0.85rem; }
-        .enum-item:last-child { border-bottom: none; }
-        .enum-key { font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 3px; color: #333; font-size: 0.8rem; min-width: 120px; text-align: center; }
-        .enum-value { color: #444; }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
 
-        .module-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 0.5rem 0; }
-        .module-table th { text-align: left; padding: 0.4rem 0.6rem; background: #f0f0f0; color: #555; font-weight: 600; position: sticky; top: 0; }
-        .module-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #eee; }
-        .module-table tr:hover td { background: #fafafa; }
-        .module-scroll { max-height: 420px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .input-group input {
+            flex: 1;
+            padding: 0.55rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
 
-        .search-box { margin-bottom: 0.75rem; }
-        .search-box input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.85rem; }
+        .input-group input:focus {
+            outline: none;
+            border-color: #4a90d9;
+            box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+        }
+
+        button {
+            padding: 0.55rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #4a90d9;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #3a7bc8;
+        }
+
+        .btn-primary:disabled {
+            background: #a0c4e8;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #5a9e6f;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #4a8e5f;
+        }
+
+        .btn-secondary:disabled {
+            background: #a8d4b4;
+            cursor: not-allowed;
+        }
+
+        .btn-accent {
+            background: #e07b39;
+            color: #fff;
+        }
+
+        .btn-accent:hover {
+            background: #c96a2e;
+        }
+
+        .btn-accent:disabled {
+            background: #f0c4a8;
+            cursor: not-allowed;
+        }
+
+        .btn-purple {
+            background: #7b4fbf;
+            color: #fff;
+        }
+
+        .btn-purple:hover {
+            background: #6a3fa5;
+        }
+
+        .btn-purple:disabled {
+            background: #c4a8e0;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 1rem;
+        }
+
+        .loading {
+            color: #888;
+            font-style: italic;
+            padding: 1rem 0;
+        }
+
+        .error {
+            background: #fff0f0;
+            border: 1px solid #fcc;
+            color: #c00;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .info-card {
+            background: #f0f7ff;
+            border: 1px solid #c8ddf0;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-card h3 {
+            margin: 0 0 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 4px 1rem;
+            font-size: 0.85rem;
+        }
+
+        .info-grid .key {
+            color: #666;
+            text-align: right;
+        }
+
+        .info-grid .val {
+            color: #222;
+            word-break: break-all;
+        }
+
+        .rel-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .rel-card .rel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .rel-card .rel-name {
+            font-weight: 600;
+        }
+
+        .rel-card .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-type {
+            background: #e8e0f0;
+            color: #5a3e85;
+        }
+
+        .rel-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 1rem;
+            font-size: 0.82rem;
+        }
+
+        .rel-detail .k {
+            color: #888;
+        }
+
+        .project-section {
+            margin-top: 0.75rem;
+            border-top: 1px dashed #ddd;
+            padding-top: 0.75rem;
+        }
+
+        .project-section h4 {
+            font-size: 0.85rem;
+            margin: 0 0 0.4rem;
+            color: #555;
+        }
+
+        .summary {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .enum-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .enum-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+
+        .enum-item:last-child {
+            border-bottom: none;
+        }
+
+        .enum-key {
+            font-family: monospace;
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #333;
+            font-size: 0.8rem;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .enum-value {
+            color: #444;
+        }
+
+        .module-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin: 0.5rem 0;
+        }
+
+        .module-table th {
+            text-align: left;
+            padding: 0.4rem 0.6rem;
+            background: #f0f0f0;
+            color: #555;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .module-table td {
+            padding: 0.35rem 0.6rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .module-table tr:hover td {
+            background: #fafafa;
+        }
+
+        .module-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .search-box {
+            margin-bottom: 0.75rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
+
 <body>
     <h1>SinergiaCRM API V8 Client</h1>
     <p class="subtitle">Base URL: <?= htmlspecialchars(SUITECRM_BASE_URL) ?></p>
@@ -378,7 +674,10 @@ header('Content-Type: text/html; charset=utf-8');
             const contactId = document.getElementById('relContactIdInput').value.trim();
             const btn = document.getElementById('btnRelationships');
             const result = document.getElementById('relResult');
-            if (!contactId) { result.innerHTML = '<div class="error">Please enter a contact ID.</div>'; return; }
+            if (!contactId) {
+                result.innerHTML = '<div class="error">Please enter a contact ID.</div>';
+                return;
+            }
 
             btn.disabled = true;
             result.innerHTML = '<div class="loading">Loading...</div>';
@@ -386,11 +685,19 @@ header('Content-Type: text/html; charset=utf-8');
             try {
                 const resp = await fetch(`?action=getRelationships&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
-                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
-                if (!data.data.length) { result.innerHTML = '<div class="summary">No active relationships found for this contact.</div>'; return; }
+                if (!data.success) {
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    return;
+                }
+                if (!data.data.length) {
+                    result.innerHTML = '<div class="summary">No active relationships found for this contact.</div>';
+                    return;
+                }
 
                 let html = `<div class="summary">Found ${data.count} active relationship(s)</div>`;
-                data.data.forEach(rel => { html += renderRel(rel); });
+                data.data.forEach(rel => {
+                    html += renderRel(rel);
+                });
                 result.innerHTML = html;
             } catch (e) {
                 result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
@@ -403,7 +710,10 @@ header('Content-Type: text/html; charset=utf-8');
             const contactId = document.getElementById('contactIdInput').value.trim();
             const btn = document.getElementById('btnContact');
             const result = document.getElementById('contactResult');
-            if (!contactId) { result.innerHTML = '<div class="error">Please enter a contact ID.</div>'; return; }
+            if (!contactId) {
+                result.innerHTML = '<div class="error">Please enter a contact ID.</div>';
+                return;
+            }
 
             btn.disabled = true;
             result.innerHTML = '<div class="loading">Loading...</div>';
@@ -411,7 +721,10 @@ header('Content-Type: text/html; charset=utf-8');
             try {
                 const resp = await fetch(`?action=getContact&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
-                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
+                if (!data.success) {
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    return;
+                }
 
                 const c = data.data;
                 let html = '<div class="info-card">';
@@ -463,7 +776,10 @@ header('Content-Type: text/html; charset=utf-8');
             try {
                 const resp = await fetch('?action=getRelationshipTypes');
                 const data = await resp.json();
-                if (!data.success) { result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`; return; }
+                if (!data.success) {
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    return;
+                }
 
                 let html = '<div class="summary">Available <code>relationship_type</code> enum values:</div>';
                 html += '<ul class="enum-list">';
@@ -493,7 +809,10 @@ header('Content-Type: text/html; charset=utf-8');
                 const resp = await fetch('?action=getModules');
                 const data = await resp.json();
                 const modules = data.data?.attributes;
-                if (!modules) { result.innerHTML = '<div class="error">No modules returned</div>'; return; }
+                if (!modules) {
+                    result.innerHTML = '<div class="error">No modules returned</div>';
+                    return;
+                }
 
                 const entries = Object.entries(modules);
                 let html = `<div class="summary">${entries.length} modules available</div>`;
@@ -566,4 +885,5 @@ header('Content-Type: text/html; charset=utf-8');
         }
     </script>
 </body>
+
 </html>
