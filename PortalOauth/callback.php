@@ -93,12 +93,6 @@ function tableVal($val)
       color: #333
     }
 
-    h3 {
-      font-size: 13px;
-      margin: 15px 0 6px;
-      color: #666
-    }
-
     .msg {
       padding: 10px 14px;
       border-radius: 4px;
@@ -233,42 +227,79 @@ function tableVal($val)
         <dd><code><?= h($data['refresh_token']) ?></code></dd>
         <dt>Portal ID</dt>
         <dd><code><?= h($data['portal_id']) ?></code></dd>
+        <dt>Portal Type</dt>
+        <dd><?= h($data['portal_type']) ?></dd>
       </div>
 
-      <?php if (!empty($data['contact'])): $c = $data['contact']; ?>
-        <h2>Contact Information</h2>
+      <?php if (!empty($data['user'])): $u = $data['user']; ?>
+        <h2>User Information (<?= h($data['portal_type']) ?>)</h2>
         <div class="grid">
           <dt>ID</dt>
-          <dd><code><?= h($c['id']) ?></code></dd>
-          <dt>First Name</dt>
-          <dd><?= tableVal($c['first_name']) ?></dd>
-          <dt>Last Name</dt>
-          <dd><?= tableVal($c['last_name']) ?></dd>
-          <dt>Title</dt>
-          <dd><?= tableVal($c['title']) ?></dd>
-          <dt>Department</dt>
-          <dd><?= tableVal($c['department']) ?></dd>
-          <dt>Phone Mobile</dt>
-          <dd><?= tableVal($c['phone_mobile']) ?></dd>
-          <dt>Phone Work</dt>
-          <dd><?= tableVal($c['phone_work']) ?></dd>
-          <dt>Phone Home</dt>
-          <dd><?= tableVal($c['phone_home']) ?></dd>
-          <dt>Description</dt>
-          <dd><?= tableVal($c['description']) ?></dd>
-          <dt>Portal Username</dt>
-          <dd><?= tableVal($c['stic_portal_username_c']) ?></dd>
-          <dt>Portal Enabled</dt>
-          <dd><?= h($c['stic_portal_enabled_c']) ?></dd>
-          <dt>Last Login</dt>
-          <dd><?= tableVal($c['stic_portal_last_login_c']) ?></dd>
-          <dt>Failed Attempts</dt>
-          <dd><?= h($c['stic_portal_failed_attempts_c']) ?></dd>
+          <dd><code><?= h($u['id']) ?></code></dd>
+          <?php if ($data['portal_type'] === 'Contact'): ?>
+            <dt>First Name</dt>
+            <dd><?= tableVal($u['first_name']) ?></dd>
+            <dt>Last Name</dt>
+            <dd><?= tableVal($u['last_name']) ?></dd>
+            <dt>Birthdate</dt>
+            <dd><?= tableVal($u['birthdate']) ?></dd>
+            <dt>Phone Mobile</dt>
+            <dd><?= tableVal($u['phone_mobile']) ?></dd>
+            <dt>Language</dt>
+            <dd><?= tableVal($u['stic_language_c']) ?></dd>
+            <dt>Gender</dt>
+            <dd><?= tableVal($u['stic_gender_c']) ?></dd>
+            <dt>Age</dt>
+            <dd><?= tableVal($u['stic_age_c']) ?></dd>
+            <dt>ID Number</dt>
+            <dd><?= tableVal($u['stic_identification_number_c']) ?></dd>
+            <dt>ID Type</dt>
+            <dd><?= tableVal($u['stic_identification_type_c']) ?></dd>
+            <dt>Address (ZIP)</dt>
+            <dd><?= tableVal($u['primary_address_postalcode']) ?></dd>
+            <dt>Address (Country)</dt>
+            <dd><?= tableVal($u['primary_address_country']) ?></dd>
+            <dt>Address (State)</dt>
+            <dd><?= tableVal($u['primary_address_state']) ?></dd>
+            <dt>Address (City)</dt>
+            <dd><?= tableVal($u['primary_address_city']) ?></dd>
+          <?php else: ?>
+            <dt>Name</dt>
+            <dd><?= tableVal($u['name']) ?></dd>
+            <dt>Phone Office</dt>
+            <dd><?= tableVal($u['phone_office']) ?></dd>
+            <dt>Phone Alt</dt>
+            <dd><?= tableVal($u['phone_alternate']) ?></dd>
+            <dt>Website</dt>
+            <dd><?= tableVal($u['website']) ?></dd>
+            <dt>Account Type</dt>
+            <dd><?= tableVal($u['account_type']) ?></dd>
+            <dt>Industry</dt>
+            <dd><?= tableVal($u['industry']) ?></dd>
+            <dt>Description</dt>
+            <dd><?= tableVal($u['description']) ?></dd>
+            <dt>ID Number</dt>
+            <dd><?= tableVal($u['stic_identification_number_c']) ?></dd>
+            <dt>ID Type</dt>
+            <dd><?= tableVal($u['stic_identification_type_c']) ?></dd>
+            <dt>Language</dt>
+            <dd><?= tableVal($u['stic_language_c']) ?></dd>
+            <dt>Address (ZIP)</dt>
+            <dd><?= tableVal($u['billing_address_postalcode']) ?></dd>
+            <dt>Address (Country)</dt>
+            <dd><?= tableVal($u['billing_address_country']) ?></dd>
+            <dt>Address (State)</dt>
+            <dd><?= tableVal($u['billing_address_state']) ?></dd>
+            <dt>Address (City)</dt>
+            <dd><?= tableVal($u['billing_address_city']) ?></dd>
+          <?php endif; ?>
+          <dt>Email</dt>
+          <dd><?= tableVal($u['email']) ?></dd>
         </div>
       <?php endif; ?>
 
-      <h2>Relationships (<?= count($data['relationships']) ?>)</h2>
       <?php if (!empty($data['relationships'])): ?>
+        <h2>Relationships (<?= count($data['relationships']) ?>)</h2>
         <table>
           <thead>
             <tr>
@@ -299,17 +330,10 @@ function tableVal($val)
             <?php endforeach; ?>
           </tbody>
         </table>
-      <?php else: ?>
-        <p style="color:#888;font-size:12px;margin-top:8px">No relationships found for this contact.</p>
       <?php endif; ?>
 
       <span class="toggle" onclick="var el=document.getElementById('rawjson');el.classList.toggle('json-hidden');this.textContent=el.classList.contains('json-hidden')?'Show raw JSON':'Hide raw JSON'">Show raw JSON</span>
       <pre class="raw json-hidden" id="rawjson"><?= h(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></pre>
-
-      <p style="font-size:12px;color:#888;margin-top:12px">
-        Use the <strong>access_token</strong> as a Bearer token to call the SuiteCRM V8 API.<br>
-        Example: <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px">curl -H "Authorization: Bearer <?= h(substr($data['access_token'], 0, 20)) ?>..." <?= h($config['crm_url'] . '/Api/V8/custom/...') ?></code>
-      </p>
 
     <?php elseif ($data && isset($data['error'])): ?>
       <div class="msg msg-error">Token exchange failed: <?= h($data['error']) ?>
