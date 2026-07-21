@@ -8,8 +8,8 @@ return [
     // Public CRM URL (browser-accessible)
     'crm_url'       => getenv('CRM_URL')          ?: 'http://localhost:8000/sinergiacrm',
 
-    // Docker internal URL for server-to-server calls (omit if not using Docker)
-    // PHP-FPM can reach nginx via this hostname for token exchange
+    // Internal URL for curl calls from PHP (Docker container can't reach localhost:8000). If remote, just use the same as 'crm_url'.
+
     'crm_internal'  => getenv('CRM_INTERNAL_URL') ?: 'http://sw-webserver/sinergiacrm',
 
     // OAuth2 Client UUID — create in CRM: Administration → OAuth2 Clients

@@ -2,9 +2,9 @@
   <img width="180px" height="60px" src="https://github.com/SinergiaTIC/SinergiaCRM-SuiteCRM/assets/125350097/af3300d0-1b17-427c-b681-1971d39a1528" align="right" />
 </a>
 
-# SinergiaCRM API V8 Client Examples
+# SinergiaCRM API V8 Client
 
-Client examples for the [SuiteCRM / SinergiaCRM V8 JSON:API](https://docs.suitecrm.com/developer/api/developer-setup-guide/json-api/). Demonstrates OAuth2 authentication and common API operations.
+Web-based client for the SuiteCRM / SinergiaCRM V8 JSON:API. Demonstrates OAuth2 authentication and common API operations.
 
 [![LICENSE](https://img.shields.io/badge/License-AGPL_v3-orange.svg)](./LICENSE.txt)
 
@@ -15,12 +15,12 @@ Client examples for the [SuiteCRM / SinergiaCRM V8 JSON:API](https://docs.suitec
 
 ## Features
 
-- **OAuth2 Client Credentials** authentication flow
-- **Get access token** from SuiteCRM V8 API
-- **List contacts** with pagination (Python & PHP CLI)
-- **Web UI** with two lookup tools:
-  1. Fetch active `stic_Contacts_Relationships` for a contact with related project details
-  2. Retrieve full contact information by ID
+- **OAuth2 Client Credentials** authentication
+- **Fetch Modules** — List all available modules with labels and ACL permissions
+- **Fetch Enum Types** — Retrieve dropdown values for enum/multienum fields (uses `option_items` from Meta API)
+- **Contact Details** — Retrieve full contact info by ID (name, phone, email, identification, address, etc.)
+- **Relationships** — Fetch active `stic_Contacts_Relationships` with project data for a contact
+- **Language examples**: PHP (browser UI + CLI) and Python
 
 ## Quick Start
 
@@ -30,68 +30,63 @@ Client examples for the [SuiteCRM / SinergiaCRM V8 JSON:API](https://docs.suitec
 cp .env.example .env
 ```
 
-Edit `.env` with your SuiteCRM instance details:
+Edit `.env` with your SuiteCRM URL and OAuth2 credentials:
 
 ```ini
-SUITECRM_BASE_URL=http://your-suitecrm-instance
+SUITECRM_BASE_URL=http://sw-webserver/sinergiacrm
 OAUTH2_CLIENT_ID=your-client-id
-OAUTH2_CLIENT_SECRET=your-client-secret
+OAUTH2_CLIENT_SECRET=your-secret
 ```
 
-The OAuth2 client must have **Client Credentials** grant type enabled. Create one in SuiteCRM under Administration > OAuth2 Clients and Tokens.
-
-### 2. Web UI
-
-Place this directory in your web server root and open `index.php`:
-
-```
-http://your-server/SinergiaCRM-API-Examples/v8/
-```
-
-### 3. CLI (PHP)
+### 2. Serve
 
 ```bash
-php suitecrm_client.php           # First 3 pages
-php suitecrm_client.php --all     # All pages
+php -S localhost:8000
 ```
 
-### 4. CLI (Python)
+### 3. Open
 
-```bash
-python3 suitecrm_client.py        # First 3 pages
-python3 suitecrm_client.py --all  # All pages
+http://localhost:8000 — Use the web UI tools to explore your CRM data via the V8 API.
+
+## Configuration
+
+| Key | Description |
+|-----|-------------|
+| `SUITECRM_BASE_URL` | Base URL of your SuiteCRM instance (API at `/Api/access_token` relative to this) |
+| `OAUTH2_CLIENT_ID` | OAuth2 Client UUID from CRM → Administration → OAuth2 Clients |
+| `OAUTH2_CLIENT_SECRET` | Client secret |
+
+### Multi-instance
+
+To switch between CRM instances, change `SUITECRM_BASE_URL`:
+- `http://sw-webserver/sinergiacrm`
+- `http://sw-webserver/SCRM_alberto.sinergiacrm.org`
+
+### Docker
+
+When running inside Docker, use the Docker hostname `sw-webserver` instead of `localhost:8000`:
+
+```
+SUITECRM_BASE_URL=http://sw-webserver/sinergiacrm
+```
+
+The nginx config must route `/sinergiacrm/Api/` to PHP-FPM:
+```nginx
+location ~ ^/([^/]+)/Api/(.*)$ {
+    fastcgi_pass sw-php-fpm:9000;
+    fastcgi_param SCRIPT_FILENAME $document_root/$1/Api/index.php;
+    fastcgi_param REQUEST_URI /$2$is_args$args;
+}
 ```
 
 ## Requirements
 
-- PHP 7.4+ with `curl` extension
-- Python 3.7+ (standard library only)
-- A SuiteCRM / SinergiaCRM instance with V8 API enabled
-- An OAuth2 client with Client Credentials grant
+- PHP 7.4+ with cURL extension
+- SuiteCRM / SinergiaCRM instance with V8 API enabled
+- OAuth2 Client record with `client_credentials` grant type
+- OAuth2 RSA keys in `Api/V8/OAuth2/` (private.key 600, public.key 644, owned by www-data)
 
-## API Endpoints Used
+## Related
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/Api/access_token` | POST | Obtain OAuth2 access token |
-| `/Api/V8/module/Contacts` | GET | List contacts (paginated) |
-| `/Api/V8/module/Contacts/{id}` | GET | Get a single contact |
-| `/Api/V8/module/Contacts/{id}/relationships/stic_contacts_relationships_contacts` | GET | Get contact relationships |
-| `/Api/V8/module/Project/{id}` | GET | Get project details |
-
-## Project Structure
-
-```
-SinergiaCRM-API-Examples/v8/
-  .env.example              # Configuration template
-  .env                      # Local configuration (git-ignored)
-  .gitignore
-  README.md                 # This file
-  index.php                 # Web UI + API backend
-  suitecrm_client.php       # PHP CLI client
-  suitecrm_client.py        # Python CLI client
-```
-
-## License
-
-This project is distributed under the [GNU Affero General Public License (AGPLv3)](./LICENSE.txt).
+- [Portal OAuth2 Demo](../PortalOauth/) — Authorization code flow for external apps
+- [SuiteCRM V8 JSON:API](https://docs.suitecrm.com/developer/api/developer-setup-guide/json-api/)

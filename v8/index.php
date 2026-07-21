@@ -158,9 +158,14 @@ function fetchRelationships(string $contactId): array
 function fetchRelationshipTypes(): array
 {
     $token = getAccessToken();
-    $data = apiGet('/Api/V8/custom/enum/stic_contacts_relationships_types_list', $token);
+    $data = apiGet('/Api/V8/meta/fields/stic_Contacts_Relationships', $token);
 
-    return $data;
+    $items = [];
+    $field = $data['data']['attributes']['relationship_type'] ?? null;
+    if ($field && !empty($field['option_items'])) {
+        $items = $field['option_items'];
+    }
+    return ['success' => true, 'data' => $items];
 }
 
 function fetchModules(): array
