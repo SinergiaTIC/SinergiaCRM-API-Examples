@@ -1,37 +1,73 @@
 # SinergiaCRM-API-Examples
-Repositorio de código que ofrece un conjunto de ejemplos para los diferentes métodos ofrecidos por la API de SinergiaCRM (software libre detallado en el siguiente apartado), con las siguientes características: 
 
-- Protocolo REST
-- Versión 4.1 de la API
-- Programado en PHP
+Colección de clientes demo para las diferentes APIs de SinergiaCRM. Abre `index.php` en un navegador o en un servidor PHP para ver la página de inicio con todos los clientes disponibles.
 
-Este repositorio facilita un primer contacto con los métodos ofrecidos por la API y permite realizar pruebas de forma ágil. Los pasos a seguir para poder disponer de este conjuntos de ejempolos son: 
+## Clientes disponibles
 
-1. Disponer de una instancia de SinergiaCRM con la que interactuar a través de su API.  
-2. Descargar el código de este repositorio e instalarlo en un ordenador local o en un servidor propio donde exista un entorno de ejecución PHP. 
-3. Configurar las credenciales de acceso a la instancia del CRM a la que queramos conectarnos y otras configuraciones.
-4. Probar los diferentes ejemplos o implementar ejemplos personalizados para nuevos casos de uso. 
+### Portal OAuth2 Demo (`PortalOauth/`)
+Cliente OAuth2 completo para apps externas que autentican usuarios del portal (Personas / Organizaciones). Implementa el flujo *authorization code grant*. La app nunca ve la contraseña del usuario.
 
+- **Autenticación:** `portal_authorization_code` OAuth2 grant
+- **Endpoints usados:** `sticPortalLogin`, `sticPortalOAuthToken`
+- **Funciones:** Login con SinergiaCRM → intercambio de código por tokens → perfil del usuario + relaciones
+- **Configuración:** `.env` (copiar `.env.example`)
+- **Documentación:** [PortalOauth/README.md](PortalOauth/README.md)
+
+### V8 API Client (`v8/`)
+Cliente web para la API REST V8 de SuiteCRM usando el grant `client_credentials`. Permite explorar contactos, relaciones, valores de listas desplegables y módulos.
+
+- **Autenticación:** `client_credentials` OAuth2 grant
+- **Endpoints usados:** `/Api/access_token`, `/Api/V8/module/*`, `/Api/V8/meta/*`
+- **Funciones:**
+  - Buscar relaciones activas por persona (con datos de proyecto)
+  - Obtener detalles de persona por ID
+  - Buscar valores de cualquier lista desplegable por su clave
+  - Listar módulos disponibles con ACLs
+- **Configuración:** `.env` (copia `.env.example`)
+- **Documentación:** [v8/README.md](v8/README.md)
+
+### API v4.1 Client (`v4.1/`)
+Cliente web para la API REST v4.1 clásica con autenticación por usuario/contraseña.
+
+- **Autenticación:** Usuario / contraseña (md5)
+- **Endpoint:** `v4_1_SticCustom/rest.php`
+- **Funciones:**
+  - Buscar valores de cualquier lista desplegable por su clave
+  - Obtener un registro por ID (get_entry)
+  - Obtener definición de campos de un módulo (get_module_fields)
+  - Obtener relaciones de un registro (get_relationships)
+  - Obtener definición de idioma (get_language_definition)
+  - Crear/actualizar registros (set_entry)
+- **Configuración:** `.env` (copia `.env.example`)
+
+## Configuración
+
+Cada cliente usa un archivo `.env` para su configuración. Copia el `.env.example` de cada directorio y edita los valores.
+
+### Sobrescritura de configuración desde la UI
+
+Cada cliente tiene una tarjeta **Connection Settings** en su interfaz que muestra la instancia a la que está conectado. Puedes editar y guardar las opciones desde la UI sin modificar los archivos de código:
+
+1. Haz clic en **Edit** en la tarjeta Connection Settings
+2. Cambia los valores (URL, client ID, credenciales, etc.)
+3. Haz clic en **Save Override** → se guarda en `config-override.json`
+4. Para volver a los valores por defecto, haz clic en **Revert**
+
+Los archivos `config-override.json` son locales y no se suben al repositorio (están en `.gitignore`).
+
+Las contraseñas nunca se muestran en el HTML — si están configuradas, se muestra "configured" y solo se sobrescriben si se escribe un nuevo valor.
+
+## Requisitos
+
+- PHP 7.4+ con curl
+- Una instancia de SinergiaCRM accesible
+- Credenciales (usuario/contraseña para v4.1, client_id/secret para V8, client_id para PortalOauth)
 
 ## SinergiaCRM
 
-[SinergiaCRM](https://www.sinergiacrm.org/es) es una iniciativa de la Asociación SinergiaTIC, una entidad sin ánimo de lucro cuya misión es potenciar la capacidad de las organizaciones no lucrativas de adoptar estratégicamente y utilizar eficientemente las Tecnologías de la Información y la Comunicación (TIC). SinergiaCRM se basa en [SuiteCRM](https://github.com/suitecrm/suitecrm), que a su vez deriva de SugarCRM CE.
+[SinergiaCRM](https://www.sinergiacrm.org/es) es una iniciativa de la Asociación SinergiaTIC, una entidad sin ánimo de lucro. SinergiaCRM se basa en [SuiteCRM](https://github.com/suitecrm/suitecrm).
 
-[![Repositorio Github](https://img.shields.io/badge/Github-Repositorio-blue)](https://github.com/SinergiaTIC/SinergiaCRM-SuiteCRM)
-[![Wiki](https://img.shields.io/badge/Information-Wiki-lightgray)](https://wikisuite.sinergiacrm.org)
-[![LICENSE](https://img.shields.io/github/license/suitecrm/suitecrm.svg)](./LICENSE.txt)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5)](https://twitter.com/SinergiaCRM)
-[![Twitter](https://img.shields.io/twitter/follow/suitecrm.svg?style=social&label=Follow)](https://twitter.com/SinergiaCRM)
-[![YouTube](https://img.shields.io/badge/Youtube-FF0000)](https://www.youtube.com/@SinergiaCRM)
-
-[Website](https://www.sinergiacrm.org) | 
+[Website](https://www.sinergiacrm.org) |
 [Manual de uso](https://wikisuite.sinergiacrm.org/index.php?title=Manual_de_SinergiaCRM) |
-[Manual de instalación](https://github.com/SinergiaTIC/SinergiaCRM-SuiteCRM/wiki)
-
-## Como continuar
-
-El proceso de instalación, así como la documentación sobre los ejemplos está detallado en la wiki de este repositorio:
-
-- https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/wiki
-
-
+[Manual de instalación](https://github.com/SinergiaTIC/SinergiaCRM-SuiteCRM/wiki) |
+[Wiki](https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/wiki)

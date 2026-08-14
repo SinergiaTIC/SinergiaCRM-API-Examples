@@ -4,19 +4,44 @@
  * SuiteCRM / SinergiaCRM API V8 Client
  *
  * A lightweight single-file PHP client for the SuiteCRM V8 JSON:API.
- * Provides four lookup tools:
- *   1. Fetch active stic_Contacts_Relationships for a contact (with project data)
- *   2. Retrieve full contact details by ID
- *   3. Retrieve available enum values for relationship_type field
- *   4. List all available modules via meta/modules
+ * Dual-mode operation:
+ *  - When `?action=` is present in the URL, this file acts as a JSON API proxy,
+ *    returning structured JSON responses for programmatic consumption.
+ *  - Otherwise, it renders an interactive HTML UI for manually exploring
+ *    contacts, relationships, enum values and modules.
  *
- * Configuration is read from .env in the same directory.
- * Copy .env.example to .env and set your credentials.
+ * Provided API endpoints (`?action=...`):
+ *   - getRelationships   Fetch active stic_Contacts_Relationships for a contact,
+ *                        enriched with related project details.
+ *   - getContact         Retrieve full contact details by ID.
+ *   - getRelationshipTypes  Retrieve available enum values for the
+ *                            relationship_type field (legacy name: getEnumTypes).
+ *   - getModules         List all available modules via meta/modules.
+ *   - getDropdown        Look up a dropdown list by its list_key across
+ *                        known module fields.
+ *
+ * Configuration is read from `.env` in the same directory, with optional
+ * runtime overrides from `config-override.json` (written by the UI's
+ * "Save Override" button). Copy `.env.example` to `.env` and set your
+ * credentials before use.
+ *
+ * @license MIT
  */
 
+/** Directory containing this file — used to locate .env and config-override.json */
 define('APP_DIR', __DIR__);
+
+/** MIME type required by SuiteCRM V8 JSON:API for all requests */
 define('JSONAPI_MIME', 'application/vnd.api+json');
 
+/**
+ * Load environment variables from the `.env` file in APP_DIR.
+ *
+ * The .env file uses a simple KEY=VALUE format (one per line). Blank lines
+ * and lines starting with `#` are treated as comments and skipped.
+ *
+ * @return array<string,string> Associative array of configuration key/value pairs.
+ */
 function loadEnv(): array
 {
     $envFile = APP_DIR . '/.env';
@@ -24,9 +49,7 @@ function loadEnv(): array
     if (file_exists($envFile)) {
         foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
             $line = trim($line);
-            if ($line === '' || $line[0] === '#') {
-                continue;
-            }
+            if ($line === '' || $line[0] === '#') continue;
             [$key, $value] = explode('=', $line, 2);
             $vars[trim($key)] = trim($value);
         }
@@ -34,11 +57,87 @@ function loadEnv(): array
     return $vars;
 }
 
+/**
+ * Load UI-based overrides from `config-override.json` in APP_DIR.
+ *
+ * These overrides are written by the "Save Override" button in the HTML UI
+ * and take precedence over .env values. If the file doesn't exist or can't
+ * be parsed, an empty array is returned.
+ *
+ * @return array An associative array of overridden config values.
+ */
+function loadOverrides(): array
+{
+    $f = APP_DIR . '/config-override.json';
+    if (file_exists($f)) {
+        return json_decode(file_get_contents($f), true) ?? [];
+    }
+    return [];
+}
+
+/** ──────── Bootstrap: load configuration from .env and override file ─────── */
+
 $env = loadEnv();
+$overrides = loadOverrides();
+
+/**
+ * Merge overrides on top of .env values. Non-empty, non-null override values
+ * take precedence over the corresponding .env entries.
+ */
+$env = array_merge($env, array_filter($overrides, fn($v) => $v !== '' && $v !== null));
+
+/** SuiteCRM instance base URL (without trailing slash) */
 define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://localhost:8000', '/'));
+
+/** OAuth2 client credentials for the client_credentials grant flow */
 define('OAUTH2_CLIENT_ID', $env['OAUTH2_CLIENT_ID'] ?? '');
 define('OAUTH2_CLIENT_SECRET', $env['OAUTH2_CLIENT_SECRET'] ?? '');
 
+/** Whether any non-trivial overrides from config-override.json are active */
+$hasOverrides = !empty(array_filter($overrides, fn($v) => $v !== '' && $v !== null));
+
+/** Status message shown in the UI after saving or clearing settings */
+$saveMsg = '';
+
+/** ──────── Configuration save/clear handlers (POST from HTML UI) ──────── */
+
+/**
+ * Handle "Save Override" form submission.
+ * Persists the submitted SUITECRM_BASE_URL, OAUTH2_CLIENT_ID, and
+ * OAUTH2_CLIENT_SECRET to config-override.json.
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
+    $ov = array_filter([
+        'SUITECRM_BASE_URL'   => $_POST['SUITECRM_BASE_URL'] ?? '',
+        'OAUTH2_CLIENT_ID'    => $_POST['OAUTH2_CLIENT_ID'] ?? '',
+        'OAUTH2_CLIENT_SECRET' => $_POST['OAUTH2_CLIENT_SECRET'] ?? '',
+    ], fn($v) => $v !== '' && $v !== null);
+    file_put_contents(APP_DIR . '/config-override.json', json_encode($ov, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    $saveMsg = 'Settings saved.';
+}
+
+/**
+ * Handle "Revert to .env Defaults" button.
+ * Deletes config-override.json, removing all runtime overrides.
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_settings'])) {
+    $f = APP_DIR . '/config-override.json';
+    if (file_exists($f)) unlink($f);
+    $saveMsg = 'Overrides cleared — using .env defaults.';
+}
+
+/** ──────── API helper functions ──────── */
+
+/**
+ * Obtain an OAuth2 access token from the SuiteCRM API using the
+ * client_credentials grant flow.
+ *
+ * Uses the constants SUITECRM_BASE_URL, OAUTH2_CLIENT_ID and
+ * OAUTH2_CLIENT_SECRET that were defined during bootstrap.
+ *
+ * @return string The access_token value from the OAuth2 response.
+ * @throws RuntimeException If the authentication endpoint returns a non-200 HTTP status.
+ */
 function getAccessToken(): string
 {
     $ch = curl_init(SUITECRM_BASE_URL . '/Api/access_token');
@@ -62,6 +161,18 @@ function getAccessToken(): string
     return json_decode($response, true)['access_token'];
 }
 
+/**
+ * Perform a GET request to the SuiteCRM V8 API.
+ *
+ * Automatically attaches the Authorization header and the JSON:API MIME
+ * headers. Accepts optional query string parameters.
+ *
+ * @param string $endpoint The API path (e.g. `/Api/V8/module/Contacts/{id}`).
+ * @param string $token    A valid OAuth2 access token.
+ * @param array  $params   Optional query string parameters appended to the URL.
+ * @return array           Decoded JSON response body as an associative array.
+ * @throws RuntimeException If the API returns a non-200 HTTP status.
+ */
 function apiGet(string $endpoint, string $token, array $params = []): array
 {
     $url = SUITECRM_BASE_URL . $endpoint;
@@ -87,12 +198,26 @@ function apiGet(string $endpoint, string $token, array $params = []): array
     return json_decode($response, true);
 }
 
+/**
+ * Fetch all active stic_Contacts_Relationships for a given contact,
+ * including each relationship's related Project data.
+ *
+ * Handles pagination automatically — iterates through all result pages
+ * and collects every active relationship. For each relationship that
+ * references a project, a separate API call retrieves the project details.
+ *
+ * @param string $contactId The UUID of the contact to query.
+ * @return array            Structured result with `success`, `count`, and `data` keys.
+ *                          Each item in `data` includes relationship fields and
+ *                          an optional `project` sub-object.
+ */
 function fetchRelationships(string $contactId): array
 {
     $token = getAccessToken();
     $relationships = [];
     $page = 1;
 
+    /** Paginate through all pages of active relationships */
     while (true) {
         $data = apiGet("/Api/V8/module/Contacts/$contactId/relationships/stic_contacts_relationships_contacts", $token, [
             'filter[active][eq]' => '1',
@@ -111,12 +236,14 @@ function fetchRelationships(string $contactId): array
         $page++;
     }
 
+    /** Enrich each relationship with its related project details */
     $result = [];
     foreach ($relationships as $rel) {
         $attrs = $rel['attributes'] ?? [];
         $projId = $attrs['stic_contacts_relationships_projectproject_ida'] ?? '';
         $relContactId = $attrs['stic_contacts_relationships_contactscontacts_ida'] ?? '';
 
+        /** If a project is linked, fetch its attributes via the Project API */
         $project = null;
         if ($projId) {
             try {
@@ -155,6 +282,17 @@ function fetchRelationships(string $contactId): array
     return ['success' => true, 'count' => count($result), 'data' => $result];
 }
 
+/**
+ * Retrieve all available enum/dropdown values for the
+ * `relationship_type` field on the stic_Contacts_Relationships module.
+ *
+ * Uses the metadata endpoint to inspect the field definition and extract
+ * the `option_items` list. Useful for understanding valid relationship
+ * type classifications.
+ *
+ * @return array Structured result with `success` and `data` keys.
+ *               `data` is an associative array of `key => label` pairs.
+ */
 function fetchRelationshipTypes(): array
 {
     $token = getAccessToken();
@@ -168,6 +306,15 @@ function fetchRelationshipTypes(): array
     return ['success' => true, 'data' => $items];
 }
 
+/**
+ * Retrieve the full list of available modules from the SuiteCRM V8 API.
+ *
+ * Calls the `/Api/V8/meta/modules` endpoint and returns the raw response,
+ * which includes module metadata, labels, and ACL information for each
+ * module registered in the system.
+ *
+ * @return array The raw JSON:API response body from the modules metadata endpoint.
+ */
 function fetchModules(): array
 {
     $token = getAccessToken();
@@ -176,6 +323,18 @@ function fetchModules(): array
     return $data;
 }
 
+/**
+ * Fetch comprehensive details for a single contact by UUID.
+ *
+ * Only a subset of fields relevant to the SinergiaCRM use case is requested
+ * via sparse fieldsets (`fields[Contacts]`) to keep responses compact.
+ * Includes personal info, contact methods, identification, address, and
+ * employment-related custom fields.
+ *
+ * @param string $contactId The UUID of the contact to retrieve.
+ * @return array            Structured result with `success` and `data` keys.
+ *                          `data` contains a flat array of the requested contact fields.
+ */
 function fetchContact(string $contactId): array
 {
     $token = getAccessToken();
@@ -245,22 +404,135 @@ function fetchContact(string $contactId): array
     ]];
 }
 
-// --- Router ---
+/**
+ * ──────── Router ────────
+ *
+ * The `?action=` parameter determines whether this script acts as an API
+ * endpoint (JSON response) or renders the HTML UI. Each action maps to a
+ * dedicated handler function above.
+ *
+ * Supported actions:
+ *   - getRelationships     (requires contact_id)
+ *   - getContact           (requires contact_id)
+ *   - getRelationshipTypes
+ *   - getModules
+ *   - getDropdown          (requires list_key)
+ *
+ * Unrecognised or malformed actions return HTTP 400.
+ * Runtime exceptions (auth/API failures) return HTTP 500.
+ */
 
 $action = $_GET['action'] ?? null;
 
+/**
+ * API mode — an `action` parameter is present.
+ * Return JSON responses and terminate after processing.
+ */
 if ($action) {
     header('Content-Type: application/json; charset=utf-8');
     try {
+
+        /** ---- getRelationships: fetch active relationships for a contact ---- */
         if ($action === 'getRelationships' && !empty($_GET['contact_id'])) {
             echo json_encode(fetchRelationships($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } elseif ($action === 'getContact' && !empty($_GET['contact_id'])) {
+        }
+
+        /** ---- getContact: fetch full contact details by ID ---- */
+        elseif ($action === 'getContact' && !empty($_GET['contact_id'])) {
             echo json_encode(fetchContact($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } elseif ($action === 'getRelationshipTypes') {
+        }
+
+        /** ---- getRelationshipTypes: retrieve relationship_type enum values ---- */
+        elseif ($action === 'getRelationshipTypes') {
             echo json_encode(fetchRelationshipTypes(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } elseif ($action === 'getModules') {
+        }
+
+        /** ---- getModules: list all available modules ---- */
+        elseif ($action === 'getModules') {
             echo json_encode(fetchModules(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        } else {
+        }
+
+        /**
+         * ---- getDropdown: look up a dropdown list by its list_key ----
+         *
+         * This action searches across a predefined set of modules
+         * (stic_Contacts_Relationships, Contacts, Accounts, Project, Leads,
+         * Opportunities) to find a field whose `options` or field name matches
+         * the requested `list_key`. If a match is found, the option_items are
+         * returned. If not, a second pass checks known field-to-list mappings
+         * (e.g. Contacts→salutation→salutation_dom). Falls back to an error
+         * message if the list_key cannot be resolved.
+         */
+        elseif ($action === 'getDropdown') {
+            header('Content-Type: application/json; charset=utf-8');
+            try {
+                $token = getAccessToken();
+                $listKey = $_GET['list_key'] ?? '';
+                if (empty($listKey)) {
+                    echo json_encode(['error' => 'Missing list_key parameter']);
+                    exit;
+                }
+
+                /** --- First pass: scan known module field metadata for the list_key --- */
+                $found = null;
+                $searchedModules = [];
+                $modules = ['stic_Contacts_Relationships', 'Contacts', 'Accounts', 'Project', 'Leads', 'Opportunities'];
+                foreach ($modules as $mod) {
+                    try {
+                        $fdata = apiGet("/Api/V8/meta/fields/$mod", $token);
+                        $fattrs = $fdata['data']['attributes'] ?? [];
+                        foreach ($fattrs as $fname => $f) {
+                            $opts = $f['options'] ?? $f['option_items'] ?? null;
+                            if ($opts) {
+                                /** Match by options key, field name, or field_name_list convention */
+                                if ($f['options'] === $listKey || $fname . '_list' === $listKey || $fname === $listKey) {
+                                    $found = ['module' => $mod, 'field' => $fname, 'items' => $f['option_items'] ?? []];
+                                    break 2;
+                                }
+                            }
+                        }
+                    } catch (RuntimeException $e) { /* skip */ }
+                }
+
+                if ($found) {
+                    echo json_encode(['success' => true, 'list_key' => $listKey, 'module' => $found['module'], 'field' => $found['field'], 'data' => $found['items']], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                } else {
+                    /** --- Second pass: try known field→list_key heuristics --- */
+                    $guesses = [
+                        'Contacts' => ['salutation', 'stic_gender_c', 'stic_language_c', 'stic_identification_type_c'],
+                        'Accounts' => ['account_type', 'industry', 'stic_identification_type_c'],
+                    ];
+                    $found2 = null;
+                    foreach ($guesses as $mod => $fields) {
+                        try {
+                            $fdata = apiGet("/Api/V8/meta/fields/$mod", $token);
+                            $fattrs = $fdata['data']['attributes'] ?? [];
+                            foreach ($fields as $fn) {
+                                $f = $fattrs[$fn] ?? null;
+                                if ($f && ($f['options'] ?? '') === $listKey) {
+                                    $found2 = ['module' => $mod, 'field' => $fn, 'items' => $f['option_items'] ?? []];
+                                    break 2;
+                                }
+                            }
+                        } catch (RuntimeException $e) { /* skip */ }
+                    }
+
+                    if ($found2) {
+                        echo json_encode(['success' => true, 'list_key' => $listKey, 'module' => $found2['module'], 'field' => $found2['field'], 'data' => $found2['items']], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                    } else {
+                        /** Neither pass found a match — return a descriptive error */
+                        echo json_encode(['error' => "Dropdown list '$listKey' not found in known module fields. Try looking up a field name instead (e.g. 'salutation' for salutation_dom)."], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                    }
+                }
+            } catch (RuntimeException $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            exit;
+        }
+
+        /** ---- Unrecognised action or missing required parameters ---- */
+        else {
             http_response_code(400);
             echo json_encode(['error' => 'Missing or invalid parameters']);
         }
@@ -271,7 +543,20 @@ if ($action) {
     exit;
 }
 
-// --- HTML UI ---
+/**
+ * ──────── HTML UI mode ────────
+ *
+ * No `action` parameter was provided, so we render the interactive
+ * browser client. The page includes:
+ *   - A connection settings card (showing current config, with inline edit)
+ *   - Four tool cards:
+ *       1. Active Contacts Relationships by Contact
+ *       2. Contact Details by ID
+ *       3. Dropdown List Values
+ *       4. Available Modules
+ *   - Inline JavaScript that calls the API endpoints above via fetch().
+ */
+
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
@@ -282,6 +567,7 @@ header('Content-Type: text/html; charset=utf-8');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SinergiaCRM API V8 Client</title>
     <style>
+        /* ──────── Global reset & base layout ──────── */
         *,
         *::before,
         *::after {
@@ -308,6 +594,7 @@ header('Content-Type: text/html; charset=utf-8');
             margin-bottom: 2rem;
         }
 
+        /* ──────── Two-column card grid (top row) ──────── */
         .cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -320,6 +607,7 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /* ──────── Two-column card grid (bottom row) ──────── */
         .cards-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -333,6 +621,7 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /* ──────── Card component ──────── */
         .card {
             background: #fff;
             border: 1px solid #e0e0e0;
@@ -351,6 +640,7 @@ header('Content-Type: text/html; charset=utf-8');
             margin: 0 0 1rem;
         }
 
+        /* ──────── Input + button row ──────── */
         .input-group {
             display: flex;
             gap: 0.5rem;
@@ -380,6 +670,7 @@ header('Content-Type: text/html; charset=utf-8');
             font-weight: 500;
         }
 
+        /* ──────── Button variants ──────── */
         .btn-primary {
             background: #4a90d9;
             color: #fff;
@@ -436,6 +727,7 @@ header('Content-Type: text/html; charset=utf-8');
             cursor: not-allowed;
         }
 
+        /* ──────── Result container ──────── */
         .result {
             margin-top: 1rem;
         }
@@ -455,6 +747,7 @@ header('Content-Type: text/html; charset=utf-8');
             font-size: 0.85rem;
         }
 
+        /* ──────── Contact info card ──────── */
         .info-card {
             background: #f0f7ff;
             border: 1px solid #c8ddf0;
@@ -485,6 +778,7 @@ header('Content-Type: text/html; charset=utf-8');
             word-break: break-all;
         }
 
+        /* ──────── Relationship card ──────── */
         .rel-card {
             background: #f9f9f9;
             border: 1px solid #e0e0e0;
@@ -512,6 +806,7 @@ header('Content-Type: text/html; charset=utf-8');
             font-weight: 500;
         }
 
+        /* ──────── Badge states ──────── */
         .badge-active {
             background: #d4edda;
             color: #155724;
@@ -533,6 +828,7 @@ header('Content-Type: text/html; charset=utf-8');
             color: #888;
         }
 
+        /* ──────── Project sub-section inside a relationship card ──────── */
         .project-section {
             margin-top: 0.75rem;
             border-top: 1px dashed #ddd;
@@ -551,6 +847,7 @@ header('Content-Type: text/html; charset=utf-8');
             margin-bottom: 0.75rem;
         }
 
+        /* ──────── Enum / dropdown list display ──────── */
         .enum-list {
             list-style: none;
             padding: 0;
@@ -585,6 +882,7 @@ header('Content-Type: text/html; charset=utf-8');
             color: #444;
         }
 
+        /* ──────── Module table ──────── */
         .module-table {
             width: 100%;
             border-collapse: collapse;
@@ -629,14 +927,125 @@ header('Content-Type: text/html; charset=utf-8');
             border-radius: 6px;
             font-size: 0.85rem;
         }
+
+        /* ──────── Connection settings config card ──────── */
+        .config-card {
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+            padding: 1.25rem 1.5rem; margin-bottom: 1.5rem
+        }
+        .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem }
+        .config-header h2 { font-size: 1rem; margin: 0; color: #333 }
+        .config-title-row { display: flex; align-items: center; gap: 8px }
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem }
+        @media (max-width: 768px) { .config-grid { grid-template-columns: 1fr } }
+        .config-item { display: flex; flex-direction: column }
+        .config-label { font-size: 0.72rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px }
+        .config-value { font-size: 0.85rem; color: #333; word-break: break-all }
+        .config-value code { background: #eee; padding: 1px 5px; border-radius: 3px; font-size: 0.78rem }
+        .config-summary { margin-bottom: 0.75rem }
+        .override-badge {
+            display: inline-block; background: #fff3e0; color: #e65100;
+            font-size: 0.68rem; padding: 1px 7px; border-radius: 3px; font-weight: 500
+        }
+        .override-note { margin-top: 0.5rem; font-size: 0.75rem; color: #e65100 }
+        .override-note code { background: #fff8e1; padding: 1px 4px; border-radius: 2px; font-size: 0.7rem }
+        .settings-toggle {
+            font-size: 0.8rem; color: #1976d2; cursor: pointer; user-select: none;
+            padding: 4px 10px; border: 1px solid #1976d2; border-radius: 4px;
+            transition: all .15s
+        }
+        .settings-toggle:hover, .settings-toggle.active { background: #1976d2; color: #fff }
+        .settings-form { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee }
+        .settings-form.open { display: block }
+        .field-group { margin-bottom: 0.75rem }
+        .field-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px }
+        .field-group input {
+            width: 100%; padding: 0.5rem 0.65rem; border: 1px solid #ccc;
+            border-radius: 5px; font-size: 0.85rem; font-family: inherit
+        }
+        .field-group input:focus { outline: none; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(25,118,210,.15) }
+        .field-help { font-size: 0.72rem; color: #999; margin-top: 3px }
+        .field-help code { background: #eee; padding: 1px 4px; border-radius: 2px; font-size: 0.68rem }
+        .btn-row { display: flex; gap: 0.5rem; margin-top: 1rem }
+        .btn-sm { padding: 0.45rem 1rem; font-size: 0.82rem; border-radius: 5px; border: none; cursor: pointer; font-weight: 500 }
+        .btn-save { background: #1976d2; color: #fff }
+        .btn-save:hover { background: #1565c0 }
+        .btn-clear { background: #e0e0e0; color: #555 }
+        .btn-clear:hover { background: #ccc }
+        .save-msg { font-size: 0.8rem; color: #2e7d32; margin-top: 0.5rem }
     </style>
 </head>
 
 <body>
+    <!-- ──────── Page header ──────── -->
     <h1>SinergiaCRM API V8 Client</h1>
-    <p class="subtitle">Base URL: <?= htmlspecialchars(SUITECRM_BASE_URL) ?></p>
+    <p class="subtitle">
+        Browser-based V8 REST API client — explore contacts, relationships, enum values, and modules.
+    </p>
 
+    <!-- ──────── Connection settings card ──────── -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title-row">
+                <h2>Connection Settings</h2>
+                <?php if ($hasOverrides): ?><span class="override-badge">overridden</span><?php endif; ?>
+            </div>
+            <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
+                &#9881; Edit
+            </span>
+        </div>
+        <div class="config-summary">
+            <!-- Read-only display of current connection parameters -->
+            <div class="config-grid">
+                <div class="config-item">
+                    <span class="config-label">CRM URL</span>
+                    <span class="config-value"><?= htmlspecialchars(SUITECRM_BASE_URL) ?></span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Client ID</span>
+                    <span class="config-value"><code><?= htmlspecialchars(OAUTH2_CLIENT_ID) ?></code></span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Auth method</span>
+                    <span class="config-value"><code>client_credentials</code> OAuth2 grant</span>
+                </div>
+            </div>
+            <?php if ($hasOverrides): ?>
+            <div class="override-note">Overrides active from <code>config-override.json</code></div>
+            <?php endif; ?>
+        </div>
+        <!-- Collapsible settings edit form -->
+        <form method="post" id="settingsForm" class="settings-form">
+            <div class="field-group">
+                <label for="baseUrl">SuiteCRM Base URL</label>
+                <input type="text" name="SUITECRM_BASE_URL" id="baseUrl" value="<?= htmlspecialchars(SUITECRM_BASE_URL) ?>" placeholder="http://localhost:8000/sinergiacrm">
+                <div class="field-help">Root URL of your SinergiaCRM instance. Example: <code>https://mycrm.example.com/sinergiacrm</code></div>
+            </div>
+            <div class="field-group">
+                <label for="clientId">OAuth2 Client ID</label>
+                <input type="text" name="OAUTH2_CLIENT_ID" id="clientId" value="<?= htmlspecialchars(OAUTH2_CLIENT_ID) ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                <div class="field-help">The OAuth2 client UUID with <code>client_credentials</code> grant type enabled.</div>
+            </div>
+            <div class="field-group">
+                <label for="clientSecret">OAuth2 Client Secret</label>
+                <input type="password" name="OAUTH2_CLIENT_SECRET" id="clientSecret" value="" placeholder="<?= OAUTH2_CLIENT_SECRET ? 'Secret configured — type a new one to override' : 'Enter client secret' ?>">
+                <div class="field-help"><?= OAUTH2_CLIENT_SECRET ? 'A secret is configured in <code>.env</code>. Leave blank to keep it, or type a new value to override.' : 'Required for the <code>client_credentials</code> OAuth2 grant. Kept in <code>.env</code> — do not commit.' ?></div>
+            </div>
+            <div class="btn-row">
+                <!-- Persists overrides to config-override.json -->
+                <button type="submit" name="save_settings" class="btn-sm btn-save">Save Override</button>
+                <?php if ($hasOverrides): ?>
+                <!-- Deletes config-override.json to revert to .env defaults -->
+                <button type="submit" name="clear_settings" class="btn-sm btn-clear">Revert to .env Defaults</button>
+                <?php endif; ?>
+            </div>
+            <?php if ($saveMsg): ?><div class="save-msg"><?= htmlspecialchars($saveMsg) ?></div><?php endif; ?>
+        </form>
+    </div>
+
+    <!-- ──────── Tool cards: top row ──────── -->
     <div class="cards">
+        <!-- Card 1: Active Contacts Relationships lookup -->
         <div class="card">
             <h2>Active Contacts Relationships by Contact</h2>
             <p class="desc">Enter a contact ID to fetch all active <code>stic_Contacts_Relationships</code> with related project details.</p>
@@ -647,6 +1056,7 @@ header('Content-Type: text/html; charset=utf-8');
             <div id="relResult" class="result"></div>
         </div>
 
+        <!-- Card 2: Contact Details lookup -->
         <div class="card">
             <h2>Contact Details by ID</h2>
             <p class="desc">Enter a contact ID to fetch basic information (name, phone, email, identification, etc).</p>
@@ -658,14 +1068,20 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
     </div>
 
+    <!-- ──────── Tool cards: bottom row ──────── -->
     <div class="cards-bottom">
+        <!-- Card 3: Dropdown list value lookup -->
         <div class="card">
-            <h2>Relationship Type Enum Values</h2>
-            <p class="desc">Retrieve all available enum items for the <code>relationship_type</code> field of <code>stic_Contacts_Relationships</code> (list: <code>stic_contacts_relationships_types_list</code>).</p>
-            <button class="btn-accent" id="btnEnumTypes" onclick="fetchEnumTypes()">Fetch Enum Types</button>
-            <div id="enumResult" class="result"></div>
+            <h2>Dropdown List Values</h2>
+            <p class="desc">Look up any dropdown list by its key (e.g. <code>stic_contacts_relationships_types_list</code>, <code>account_type_dom</code>, <code>gender_list</code>). Enter a list key to see all its values.</p>
+            <div class="input-group">
+                <input type="text" id="dropdownKey" placeholder="Dropdown list key" value="stic_contacts_relationships_types_list">
+                <button class="btn-accent" id="btnDropdown" onclick="fetchDropdown()">Look Up</button>
+            </div>
+            <div id="dropdownResult" class="result"></div>
         </div>
 
+        <!-- Card 4: Available modules list -->
         <div class="card">
             <h2>Available Modules</h2>
             <p class="desc">Fetch all available modules from <code>/Api/V8/meta/modules</code> with labels and ACL permissions.</p>
@@ -675,6 +1091,11 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 
     <script>
+        /**
+         * Fetch and display active stic_Contacts_Relationships for a contact.
+         * Calls the `?action=getRelationships` endpoint with the entered contact ID.
+         * Each relationship card includes an embedded project section when applicable.
+         */
         async function searchRelationships() {
             const contactId = document.getElementById('relContactIdInput').value.trim();
             const btn = document.getElementById('btnRelationships');
@@ -711,6 +1132,11 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /**
+         * Fetch and display full contact details by UUID.
+         * Calls the `?action=getContact` endpoint and renders an info card
+         * with all available contact fields.
+         */
         async function searchContact() {
             const contactId = document.getElementById('contactIdInput').value.trim();
             const btn = document.getElementById('btnContact');
@@ -771,6 +1197,14 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /**
+         * Fetch and display the `relationship_type` enum values from the
+         * stic_Contacts_Relationships module metadata.
+         * Calls the `?action=getRelationshipTypes` endpoint.
+         *
+         * NOTE: This function is defined but no button in the current UI
+         * invokes it; it remains available for programmatic use.
+         */
         async function fetchEnumTypes() {
             const btn = document.getElementById('btnEnumTypes');
             const result = document.getElementById('enumResult');
@@ -803,6 +1237,11 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /**
+         * Fetch and display all available modules from the SuiteCRM V8 API.
+         * Calls the `?action=getModules` endpoint and renders a filterable
+         * table with module name, label, and ACL permissions.
+         */
         async function fetchModules() {
             const btn = document.getElementById('btnModules');
             const result = document.getElementById('moduleResult');
@@ -838,6 +1277,47 @@ header('Content-Type: text/html; charset=utf-8');
             }
         }
 
+        /**
+         * Fetch and display a dropdown list by its list_key.
+         * Calls the `?action=getDropdown` endpoint and renders an enum-style
+         * list of key/value pairs returned by the server-side lookup.
+         */
+        async function fetchDropdown() {
+            const key = document.getElementById('dropdownKey').value.trim();
+            const btn = document.getElementById('btnDropdown');
+            const result = document.getElementById('dropdownResult');
+            if (!key) { result.innerHTML = '<div class="error">Enter a dropdown list key.</div>'; return; }
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Looking up...</div>';
+            try {
+                const resp = await fetch(`?action=getDropdown&list_key=${encodeURIComponent(key)}`);
+                const data = await resp.json();
+                if (data.error) {
+                    result.innerHTML = `<div class="error">${esc(data.error)}</div>`;
+                    return;
+                }
+                let html = `<div class="summary">List <code>${esc(data.list_key)}</code> (module <code>${esc(data.module)}</code>, field <code>${esc(data.field)}</code>)</div>`;
+                html += '<ul class="enum-list">';
+                let count = 0;
+                for (const [k, v] of Object.entries(data.data || {})) {
+                    html += `<li class="enum-item"><span class="enum-key">${esc(k || '(empty)')}</span><span class="enum-value">${esc(v)}</span></li>`;
+                    count++;
+                }
+                html += '</ul>';
+                html += `<div class="summary" style="margin-top:0.5rem">${count} item(s)</div>`;
+                result.innerHTML = html;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        /**
+         * Live-filter the module table rows by the text typed into the search box.
+         * Rows whose module name (data-name attribute) does not contain the filter
+         * string (case-insensitive) are hidden.
+         */
         function filterModuleTable() {
             const filter = (document.getElementById('moduleFilter')?.value || '').toLowerCase();
             const rows = document.querySelectorAll('#moduleTable tbody tr');
@@ -847,6 +1327,14 @@ header('Content-Type: text/html; charset=utf-8');
             });
         }
 
+        /**
+         * Render a single relationship record as an HTML card.
+         * Includes relationship metadata, badges (Active, relationship type),
+         * and — when a project is linked — a nested project details section.
+         *
+         * @param {Object} rel - The relationship data object from the API response.
+         * @returns {string} HTML markup for the relationship card.
+         */
         function renderRel(rel) {
             let html = '<div class="rel-card">';
             html += `<div class="rel-header"><span class="rel-name">${esc(rel.name || '(unnamed)')}</span>`;
@@ -862,6 +1350,7 @@ header('Content-Type: text/html; charset=utf-8');
             html += `<div class="k">Other End Reasons</div><div>${esc(rel.other_end_reasons || '—')}</div>`;
             html += '</div>';
 
+            /** Render nested project details if available */
             if (rel.project) {
                 const p = rel.project;
                 html += '<div class="project-section"><h4>Related Project</h4><div class="rel-detail">';
@@ -878,11 +1367,28 @@ header('Content-Type: text/html; charset=utf-8');
             return html;
         }
 
+        /**
+         * Helper to produce a single row in the contact info grid.
+         * Returns an empty string if the value is falsy, so empty fields
+         * are omitted from the rendered output.
+         *
+         * @param {string} label - The field label (e.g. "First Name").
+         * @param {*}      val   - The field value.
+         * @returns {string} HTML markup for the key/value row.
+         */
         function row(label, val) {
             if (!val) return '';
             return `<div class="key">${esc(label)}</div><div class="val">${esc(String(val))}</div>`;
         }
 
+        /**
+         * Escape a string for safe embedding in HTML.
+         * Creates a text node in a detached <div> and returns its innerHTML,
+         * ensuring any HTML special characters are encoded to entities.
+         *
+         * @param {string} s - The raw string to escape.
+         * @returns {string} The HTML-escaped version of the input.
+         */
         function esc(s) {
             const div = document.createElement('div');
             div.appendChild(document.createTextNode(s));
