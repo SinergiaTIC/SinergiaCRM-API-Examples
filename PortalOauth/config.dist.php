@@ -15,6 +15,11 @@ return [
     // OAuth2 Client UUID — create in CRM: Administration → OAuth2 Clients
     'client_id'     => getenv('OAUTH_CLIENT_ID')  ?: 'your-oauth2-client-uuid',
 
+    // Client secret — only required for confidential portal clients (created with a
+    // stored secret). Leave empty for secret-less portal clients. Sent on the token
+    // exchange when set.
+    'client_secret' => getenv('OAUTH_CLIENT_SECRET') ?: '',
+
     // Must match the redirect_uri on the OAuth2 Client exactly
     'redirect_uri'  => getenv('OAUTH_REDIRECT_URI') ?: 'http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php',
 ];

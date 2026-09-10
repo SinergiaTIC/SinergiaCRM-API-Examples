@@ -44,6 +44,10 @@ El archivo `.env` contiene toda la configuración del cliente. No se sube al rep
 | `CRM_URL` | string | URL pública de la instancia SinergiaCRM | `https://daniel.sinergiacrm.org` |
 | `API_PATH` | string | Ruta relativa del endpoint REST v4.1 | `/custom/service/v4_1_SticCustom/rest.php` |
 | `CRM_USER` | string | Usuario del CRM con permisos de API | `sinergiacrm` |
+
+> **Docker local:** las llamadas REST las hace PHP-FPM dentro del contenedor, donde
+> `localhost:8000` **no es alcanzable**. Usa el nombre del servicio Docker como URL:
+> `CRM_URL=http://sw-webserver/sinergiacrm`.
 | `CRM_PASSWORD` | string | Contraseña del usuario del CRM | (tu contraseña) |
 | `API_LANGUAGE` | string | Idioma para las interacciones con la API | `es_ES`, `ca_ES`, `gl_ES`, `en_us` |
 

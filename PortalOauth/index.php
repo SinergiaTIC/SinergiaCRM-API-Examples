@@ -48,6 +48,7 @@ function loadPortalConfig(): array
         'crm_url'       => $vars['CRM_URL'] ?? $vars['crm_url'] ?? 'http://localhost:8000/sinergiacrm',
         'crm_internal'  => $vars['CRM_INTERNAL'] ?? $vars['crm_internal'] ?? '',
         'client_id'     => $vars['OAUTH_CLIENT_ID'] ?? $vars['client_id'] ?? '',
+        'client_secret' => $vars['OAUTH_CLIENT_SECRET'] ?? $vars['client_secret'] ?? '',
         'redirect_uri'  => $vars['OAUTH_REDIRECT_URI'] ?? $vars['redirect_uri'] ?? '',
     ];
 }
@@ -78,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         'crm_url'       => $_POST['crm_url'] ?? '',
         'crm_internal'  => $_POST['crm_internal'] ?? '',
         'client_id'     => $_POST['client_id'] ?? '',
+        'client_secret' => $_POST['client_secret'] ?? '',
     ];
     file_put_contents($overrideFile, json_encode($overrides, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     $config = array_merge($config, array_filter($overrides, fn($v) => $v !== '' && $v !== null));
@@ -109,7 +111,7 @@ setcookie('oauth_demo_state', $state, time() + 600, '/', '', false, true);
  * Build the SinergiaCRM Portal Login URL with all OAuth2 parameters.
  * The user is redirected to this URL to authenticate on the CRM side.
  */
-$loginUrl = $config['crm_url'] . '/index.php?' . http_build_query([
+$loginUrl = rtrim($config['crm_url'], '/') . '/index.php?' . http_build_query([
     'entryPoint'    => 'sticPortalLogin',
     'client_id'     => $config['client_id'],
     'redirect_uri'  => $config['redirect_uri'],
@@ -272,6 +274,11 @@ $loginUrl = $config['crm_url'] . '/index.php?' . http_build_query([
                     <label for="client_id">OAuth2 Client ID</label>
                     <input type="text" name="client_id" id="client_id" value="<?= htmlspecialchars($config['client_id']) ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                     <div class="field-help">Portal OAuth2 client UUID with <code>portal_authorization_code</code> grant type.</div>
+                </div>
+                <div class="field-group">
+                    <label for="client_secret">Client Secret <em>(optional)</em></label>
+                    <input type="password" name="client_secret" id="client_secret" value="<?= htmlspecialchars($config['client_secret'] ?? '') ?>" placeholder="Leave empty for secret-less portal clients" autocomplete="off">
+                    <div class="field-help">Only required for confidential portal clients (created with a stored secret). It is sent on the token exchange, never displayed back.</div>
                 </div>
                 <div class="btn-row">
                     <button type="submit" name="save_settings" class="btn-sm btn-save">Save Override</button>

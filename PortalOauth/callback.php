@@ -48,6 +48,7 @@ function loadPortalConfig(): array
         'crm_url'       => $vars['CRM_URL'] ?? $vars['crm_url'] ?? 'http://localhost:8000/sinergiacrm',
         'crm_internal'  => $vars['CRM_INTERNAL'] ?? $vars['crm_internal'] ?? '',
         'client_id'     => $vars['OAUTH_CLIENT_ID'] ?? $vars['client_id'] ?? '',
+        'client_secret' => $vars['OAUTH_CLIENT_SECRET'] ?? $vars['client_secret'] ?? '',
         'redirect_uri'  => $vars['OAUTH_REDIRECT_URI'] ?? $vars['redirect_uri'] ?? '',
     ];
 }
@@ -73,6 +74,7 @@ if (file_exists($overrideFile)) {
 $crmBase    = rtrim(($config['crm_internal'] ?? $config['crm_url']), '/');
 $tokenUrl   = $crmBase . '/index.php?entryPoint=sticPortalOAuthToken';
 $clientId   = $config['client_id'];
+$clientSecret = $config['client_secret'] ?? '';
 $redirectUri = $config['redirect_uri'];
 $error = '';
 $data  = null;
@@ -90,15 +92,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
   if ($state !== ($_COOKIE['oauth_demo_state'] ?? '')) {
     $error = 'Invalid state parameter. Possible CSRF attack or expired session.';
   } else {
+    $postFields = [
+      'grant_type'    => 'authorization_code',
+      'code'          => $code,
+      'client_id'     => $clientId,
+      'redirect_uri'  => $redirectUri,
+    ];
+    // Confidential clients (those with a stored secret) must authenticate on the
+    // token exchange. Only included when configured.
+    if ($clientSecret !== '') {
+      $postFields['client_secret'] = $clientSecret;
+    }
     $ch = curl_init($tokenUrl);
     curl_setopt_array($ch, [
       CURLOPT_POST => true,
-      CURLOPT_POSTFIELDS => http_build_query([
-        'grant_type'    => 'authorization_code',
-        'code'          => $code,
-        'client_id'     => $clientId,
-        'redirect_uri'  => $redirectUri,
-      ]),
+      CURLOPT_POSTFIELDS => http_build_query($postFields),
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_TIMEOUT        => 10,
     ]);

@@ -6,14 +6,15 @@ Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del p
 
 1. [Inicio rápido](#inicio-rápido)
 2. [Configuración](#configuración)
-3. [Flujo OAuth2](#flujo-oauth2)
-4. [Endpoints del CRM](#endpoints-del-crm)
-5. [Respuesta del token](#respuesta-del-token)
-6. [Interfaz web](#interfaz-web)
-7. [Sobrescritura de configuración desde la UI](#sobrescritura-de-configuración-desde-la-ui)
-8. [Arquitectura del código](#arquitectura-del-código)
-9. [Seguridad](#seguridad)
-10. [Requisitos](#requisitos)
+3. [El client_secret: qué hace y por qué importa](#el-client_secret--qué-hace-y-por-qué-importa)
+4. [Flujo OAuth2](#flujo-oauth2)
+5. [Endpoints del CRM](#endpoints-del-crm)
+6. [Respuesta del token](#respuesta-del-token)
+7. [Interfaz web](#interfaz-web)
+8. [Sobrescritura de configuración desde la UI](#sobrescritura-de-configuración-desde-la-ui)
+9. [Arquitectura del código](#arquitectura-del-código)
+10. [Seguridad](#seguridad)
+11. [Requisitos](#requisitos)
 
 ---
 
@@ -45,7 +46,62 @@ El archivo `.env` contiene toda la configuración. Si no existe, el cliente usa 
 | `CRM_URL` | URL pública del CRM (accesible desde el navegador) | `https://daniel.sinergiacrm.org` |
 | `CRM_INTERNAL` | URL interna para llamadas curl servidor-servidor. Útil en Docker (usa el nombre del servicio en lugar de localhost). Si está vacío se usa `CRM_URL`. | `http://sw-webserver/sinergiacrm` |
 | `OAUTH_CLIENT_ID` | UUID del cliente OAuth2 (grant type: `portal_authorization_code`) | `00000bcf-9168-4c63-...` |
+| `OAUTH_CLIENT_SECRET` | Opcional. Solo para clientes OAuth2 *confidenciales* (creados con un secreto almacenado). Se envía en el intercambio de tokens (`client_secret`); déjalo vacío para clientes sin secreto. | *(vacío)* |
 | `OAUTH_REDIRECT_URI` | URL de callback de este cliente. Debe coincidir exactamente con la configurada en el OAuth2 Client del CRM. | `http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php` |
+
+---
+
+## El client_secret — qué hace y por qué importa
+
+### Qué autentica: la aplicación, no el usuario
+
+En el flujo hay **dos identidades** que el CRM debe verificar:
+
+1. **El usuario** — la página de login (`sticPortalLogin`) comprueba sus credenciales (contraseña/magic link). Esto ya está resuelto antes de que intervenga el secreto.
+2. **La aplicación (cliente OAuth2)** — cuando tu `callback.php` canjea el código por tokens (`POST sticPortalOAuthToken`), el CRM debe saber que *el que pregunta* es realmente la aplicación registrada y no un tercero que se ha hecho con un código o un token. Eso es exactamente lo que demuestra el `client_secret`.
+
+### Cliente público vs. confidencial
+
+| | Sin secreto (cliente *público*) | Con secreto (cliente *confidencial*) |
+|---|---|---|
+| Al crear el cliente | **Is Confidential** desmarcado, sin *Change Secret* | **Is Confidential** marcado + *Change Secret* |
+| `client_secret` en el intercambio | No se envía | **Obligatorio** |
+| Respuesta del CRM sin secreto | `200` (no se comprueba) | `400 {"error":"invalid_client"}` |
+| Precaución frente a | — | El CRM compara `sha256(client_secret)` con el hash almacenado; un secreto erróneo también da `invalid_client` |
+
+En este demo: si tu `.env` define `OAUTH_CLIENT_SECRET`, `callback.php` lo envía en el intercambio; si lo dejas vacío, no lo envía y el CRM no lo exige. La regla la pone el **cliente**, no el demo.
+
+### ¿Por qué importa? Tres casos reales
+
+**1. Robo del código de autorización.** El código viaja por el navegador
+(`redirect_uri?code=...&state=...`) y puede filtrarse (logs, historial del navegador,
+proxies, un redirect mal configurado). Sin secreto, un atacante que robe el código solo
+necesita el `client_id` — que es **público** (aparece en la propia URL del login:
+`?client_id=4cf95c5a-…`) — para canjearlo y obtener los tokens + perfil completo del
+usuario. Con secreto, el código robado es **inservible** sin la configuración de tu app.
+
+**2. Robo de un refresh token.** Los refresh tokens duran 30 días y rotan. Si uno se filtra
+(base de datos, logs, XSS), el atacante intenta renovarlo indicando tu `client_id`. El
+CRM ya liga el token a su cliente, pero el `client_id` se puede adivinar; el `client_secret`
+es lo que impide que el robo se convierta en tokens nuevos — necesitaría además tu `.env`.
+
+**3. Auditoría y rotación.** Cada integración tiene su propio secreto: puedes revocar/rotar
+el de una app sin afectar a las demás (Administración → OAuth2 Clients → *Change Secret*),
+y los intentos de canje con secreto incorrecto quedan registrados (`invalid_client`) para
+detectar abusos.
+
+### ¿Cuándo NO debes poner secreto?
+
+Cuando la aplicación se ejecuta donde el "secreto" llegaría al usuario final: **SPA en el
+navegador, móvil o escritorio**. Un secreto dentro del bundle es público de todas formas,
+así que configurarlo no añade seguridad y solo rompería tu integración. Para esos casos usa
+un cliente **público** (sin secreto), exactamente como están configurados *App Alpha/Beta*
+en el entorno local; la protección la aportan el redirect-uri registrado (debe empezar por
+la URL configurada) y los códigos de un solo uso que caducan a los 10 minutos.
+
+> **Resumen:** pon `OAUTH_CLIENT_SECRET` cuando tu `callback.php` corre en **servidor
+> propio** (PHP, Node, etc.) y quieres que quien tenga un código o token suelto no pueda
+> canjearlo sin acceso a tu configuración. Déjalo vacío en apps públicas o de prueba.
 
 ---
 
@@ -90,9 +146,12 @@ grant_type=authorization_code
 code={authorization_code}
 client_id={client_id}
 redirect_uri={redirect_uri}
+client_secret={client_secret}     ← solo si está definido (cliente confidencial)
 ```
 
-El CRM valida el código y devuelve los tokens.
+El CRM valida el código y devuelve los tokens. Si el cliente tiene un secreto almacenado
+y el `client_secret` no coincide, responde `400 {"error":"invalid_client"}` — ver
+[El client_secret: qué hace y por qué importa](#el-client_secret--qué-hace-y-por-qué-importa).
 
 ### Paso 5 — Uso de los tokens
 
@@ -335,6 +394,13 @@ Ambos archivos definen `loadPortalConfig()` de forma independiente (son autocont
 - El archivo `.env` está en `.gitignore`
 - `config-override.json` está en `.gitignore`
 - Las variables de entorno se leen con `getenv()` como alternativa
+
+### El `client_secret` del cliente OAuth2
+El secreto autentica la **aplicación** en el intercambio de tokens (no al usuario): sin él,
+cualquiera que consiga un código de autorización o un refresh token podría canjearlo con
+solo conocer el `client_id` (público). Ver la sección
+[El client_secret: qué hace y por qué importa](#el-client_secret--qué-hace-y-por-qué-importa)
+para cuándo configurarlo y cuándo dejarlo vacío.
 
 ---
 

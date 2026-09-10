@@ -40,9 +40,13 @@ El archivo `.env` contiene toda la configuración. También puedes usar variable
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `SUITECRM_BASE_URL` | URL base de la instancia SuiteCRM/SinergiaCRM | `https://daniel.sinergiacrm.org` |
+| `SUITECRM_BASE_URL` | URL base de la instancia SuiteCRM/SinergiaCRM (**incluye la ruta de la instancia**, p. ej. `/sinergiacrm`) | `https://daniel.sinergiacrm.org` |
 | `OAUTH2_CLIENT_ID` | UUID del cliente OAuth2 (grant type: `client_credentials`) | `00000baa-662d-8bf6-...` |
 | `OAUTH2_CLIENT_SECRET` | Secret del cliente OAuth2 | `test` |
+
+> **Docker local:** las llamadas curl las hace PHP-FPM dentro del contenedor, donde
+> `localhost:8000` **no es alcanzable**. Usa el nombre del servicio Docker como URL
+> base: `SUITECRM_BASE_URL=http://sw-webserver/sinergiacrm` (el demo no tiene URL interna separada).
 
 ---
 
