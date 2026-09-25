@@ -53,29 +53,17 @@ function loadPortalConfig(): array
     ];
 }
 
-/** @var array $config Active runtime configuration (base + overrides merged). */
+/** @var array $config Server defaults, overlaid with this browser's one-flow settings. */
 $config = loadPortalConfig();
-
-/**
- * Load saved overrides from JSON file (created by the Settings panel on index.php).
- * Overrides take precedence so user-edited values survive page reloads.
- */
-$overrideFile = __DIR__ . '/config-override.json';
-if (file_exists($overrideFile)) {
-    $overrides = json_decode(file_get_contents($overrideFile), true) ?? [];
-    $config = array_merge($config, array_filter($overrides, fn($v) => $v !== '' && $v !== null));
-}
-
-/**
- * Determine token endpoint URL.
- * Uses the internal URL (e.g. Docker service name) for server-side curl
- * when configured, falling back to the public CRM URL.
- */
-$crmBase    = rtrim(($config['crm_internal'] ?? $config['crm_url']), '/');
-$tokenUrl   = $crmBase . '/index.php?entryPoint=sticPortalOAuthToken';
-$clientId   = $config['client_id'];
-$clientSecret = $config['client_secret'] ?? '';
-$redirectUri = $config['redirect_uri'];
+session_name('PORTALOAUTHDEMOSESSID');
+session_set_cookie_params([
+  'lifetime' => 0,
+  'path'     => rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/',
+  'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+  'httponly' => true,
+  'samesite' => 'Lax',
+]);
+session_start();
 $error = '';
 $data  = null;
 
@@ -89,9 +77,24 @@ $data  = null;
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
   $code  = $_GET['code'];
   $state = $_GET['state'] ?? '';
-  if ($state !== ($_COOKIE['oauth_demo_state'] ?? '')) {
+  $flow = $_SESSION['portal_oauth_flows'][$state] ?? null;
+  if ($state === ''
+      || !hash_equals((string) ($_COOKIE['oauth_demo_state'] ?? ''), $state)
+      || !is_array($flow)
+      || ($flow['expires_at'] ?? 0) < time()
+      || !is_array($flow['config'] ?? null)) {
     $error = 'Invalid state parameter. Possible CSRF attack or expired session.';
   } else {
+    // Consume the one-time flow settings from this browser's PHP session. No
+    // per-user settings are written to a shared JSON file or database table.
+    unset($_SESSION['portal_oauth_flows'][$state]);
+    $config = array_merge($config, $flow['config']);
+    $crmBase = rtrim(trim((string) ($config['crm_internal'] ?? '')) ?: $config['crm_url'], '/');
+    $tokenUrl = $crmBase . '/index.php?entryPoint=sticPortalOAuthToken';
+    $clientId = $config['client_id'];
+    $clientSecret = $config['client_secret'] ?? '';
+    $redirectUri = $config['redirect_uri'];
+
     $postFields = [
       'grant_type'    => 'authorization_code',
       'code'          => $code,
@@ -119,7 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
     }
   }
   // Clear state cookie once consumed (single-use, prevents replay).
-  setcookie('oauth_demo_state', '', time() - 3600, '/');
+  setcookie('oauth_demo_state', '', [
+    'expires'  => time() - 3600,
+    'path'     => rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/',
+    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+  ]);
 }
 
 /**
@@ -334,6 +343,9 @@ function tableVal($val)
       font-size: 10px;
       word-break: break-all
     }
+    .page-nav { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; font-size: 12px }
+    .page-nav a { color: #1976d2; text-decoration: none }
+    .page-nav a:hover { text-decoration: underline }
   </style>
 </head>
 
@@ -346,6 +358,11 @@ function tableVal($val)
     - Bottom bar with retry/reload links and connected instance info
   -->
   <div class="card">
+
+    <nav class="page-nav" aria-label="Example navigation">
+      <a href="../index.php">← All API examples</a>
+      <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+    </nav>
 
     <h1>OAuth Callback</h1>
 

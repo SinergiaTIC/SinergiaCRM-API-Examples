@@ -22,7 +22,7 @@ Cliente web para la API REST V8 de SuiteCRM/SinergiaCRM usando el grant OAuth2 `
 cp .env.example .env
 
 # 2. Editar .env con tus credenciales
-#    SUITECRM_BASE_URL=https://tu-sinergiacrm.org
+#    SUITECRM_BASE_URL=http://sw-webserver/sinergiacrm
 #    OAUTH2_CLIENT_ID=tu-client-id
 #    OAUTH2_CLIENT_SECRET=tu-client-secret
 
@@ -40,13 +40,13 @@ El archivo `.env` contiene toda la configuración. También puedes usar variable
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `SUITECRM_BASE_URL` | URL base de la instancia SuiteCRM/SinergiaCRM (**incluye la ruta de la instancia**, p. ej. `/sinergiacrm`) | `https://daniel.sinergiacrm.org` |
+| `SUITECRM_BASE_URL` | URL de SinergiaCRM alcanzable desde el PHP que hace las llamadas (**incluye la ruta**) | `http://sw-webserver/sinergiacrm` |
 | `OAUTH2_CLIENT_ID` | UUID del cliente OAuth2 (grant type: `client_credentials`) | `00000baa-662d-8bf6-...` |
 | `OAUTH2_CLIENT_SECRET` | Secret del cliente OAuth2 | `test` |
 
-> **Docker local:** las llamadas curl las hace PHP-FPM dentro del contenedor, donde
-> `localhost:8000` **no es alcanzable**. Usa el nombre del servicio Docker como URL
-> base: `SUITECRM_BASE_URL=http://sw-webserver/sinergiacrm` (el demo no tiene URL interna separada).
+> **Workkit local:** las llamadas curl las hace PHP-FPM desde Docker, por eso el default
+> usa el servicio local `http://sw-webserver/sinergiacrm`. Si ejecutas este cliente fuera
+> de los contenedores, puedes usar `http://localhost:8000/sinergiacrm`.
 
 ---
 
@@ -188,7 +188,7 @@ El archivo `index.php` funciona en dos modos:
 | Función | Descripción |
 |---------|-------------|
 | `loadEnv()` | Carga configuración desde `.env` |
-| `loadOverrides()` | Carga sobrescrituras de `config-override.json` |
+| Overrides de navegador | Se leen del `localStorage` y se envían solo en el header de cada petición API |
 | `getAccessToken()` | Obtiene token OAuth2 `client_credentials` |
 | `apiGet(endpoint, token, params)` | Ejecuta petición GET autenticada a la API V8 |
 | `fetchRelationships(contactId)` | Pagina y enriquece relaciones con datos de proyecto |
@@ -203,7 +203,6 @@ v8/
 ├── index.php              # Cliente web + backend API
 ├── .env                   # Configuración (no se sube al repo)
 ├── .env.example           # Plantilla de configuración
-├── config-override.json   # Sobrescrituras de UI (no se sube)
 └── README.md              # Esta documentación
 ```
 
@@ -211,35 +210,41 @@ v8/
 
 ## Sobrescritura de configuración desde la UI
 
-Funciona igual que los otros clientes (PortalOauth, v4.1):
+La UI permite configurar una conexión propia para el navegador actual:
 
 1. **Connection Settings** muestra URL, Client ID y método de autenticación
 2. Botón **Edit** despliega formulario con 3 campos:
    - SuiteCRM Base URL — URL raíz de la instancia
    - OAuth2 Client ID — UUID del cliente
-   - OAuth2 Client Secret — **nunca se muestra** en el HTML (placeholder "Secret configured")
-3. **Save Override** escribe `config-override.json`
-4. **Revert to .env Defaults** elimina el archivo y vuelve a los valores originales
+   - OAuth2 Client Secret — el valor de `.env` no se renderiza en HTML; un override local se muestra enmascarado en el campo
+3. **Save for this browser** guarda los valores en el `localStorage` del navegador
+4. **Revert to .env Defaults** borra esos valores locales y vuelve a los valores de `.env`
+
+Los overrides no se escriben en un fichero del servidor y no cambian lo que ven otros
+usuarios o navegadores. Cada llamada API envía sus overrides en un header de esa petición;
+PHP los usa solo para esa ejecución y no los persiste. Un `config-override.json` heredado
+se ignora: cada usuario debe volver a introducir sus propios valores en su navegador.
 
 ### Protección del Client Secret
 
 - Si hay un secret configurado en `.env`, el campo muestra el placeholder "Secret configured — type a new one to override"
 - El valor del secret **nunca** se escribe en el atributo `value` del `<input>`
 - Si se deja el campo vacío al guardar, el secret del `.env` se sigue usando
-- Para cambiar el secret, hay que escribir explícitamente un nuevo valor
+- Para cambiar el secret, hay que escribir explícitamente un nuevo valor; el override queda solo en el `localStorage` de ese navegador y se envía en el header de cada llamada al proxy PHP
 
 ---
 
 ## Seguridad
 
 ### Client Credentials no expuestos al navegador
-- El `client_secret` se usa solo en PHP (servidor), nunca en JavaScript
-- El navegador hace `fetch` al mismo `index.php` (sin credenciales en la URL)
-- PHP maneja la autenticación OAuth2 y reenvía los resultados
+- El secreto configurado en `.env` se usa solo en PHP y nunca se renderiza en HTML/JavaScript
+- Un secreto introducido como override por el usuario vive en su `localStorage`; como todo dato de `localStorage`, es accesible a JavaScript del mismo origen
+- El navegador lo envía al proxy PHP en un header de la petición (nunca en la URL); PHP maneja el grant `client_credentials` y reenvía los resultados
+- Cada llamada puede llevar configuración de navegador diferente: no hay un override persistente compartido en el servidor
 
 ### Sin secretos en el código
-- `.env` y `config-override.json` están en `.gitignore`
-- El `client_secret` nunca aparece en el HTML renderizado
+- `.env` y los antiguos `config-override.json` están en `.gitignore`; el código ya no lee ni escribe ese fichero
+- El `client_secret` de `.env` nunca aparece en el HTML inicial; si el usuario define un override, se carga dinámicamente enmascarado desde su `localStorage`
 
 ---
 

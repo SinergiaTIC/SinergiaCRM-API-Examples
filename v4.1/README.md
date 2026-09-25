@@ -2,6 +2,8 @@
 
 Cliente web completo para la API REST v4.1 de SinergiaCRM (SuiteCRM) con autenticación por usuario/contraseña.
 
+La página incluye **← All API examples** para volver al catálogo y **Read Docs ↗** para abrir esta documentación en GitHub.
+
 ## Tabla de contenidos
 
 1. [Inicio rápido](#inicio-rápido)
@@ -25,7 +27,7 @@ Cliente web completo para la API REST v4.1 de SinergiaCRM (SuiteCRM) con autenti
 cp .env.example .env
 
 # 2. Editar .env con tus credenciales
-#    CRM_URL=https://tu-sinergiacrm.org
+#    CRM_URL=http://sw-webserver/sinergiacrm
 #    CRM_USER=tu-usuario
 #    CRM_PASSWORD=tu-password
 
@@ -41,22 +43,22 @@ El archivo `.env` contiene toda la configuración del cliente. No se sube al rep
 
 | Variable | Tipo | Descripción | Ejemplo |
 |----------|------|-------------|---------|
-| `CRM_URL` | string | URL pública de la instancia SinergiaCRM | `https://daniel.sinergiacrm.org` |
+| `CRM_URL` | string | URL del Workkit accesible desde PHP-FPM | `http://sw-webserver/sinergiacrm` |
 | `API_PATH` | string | Ruta relativa del endpoint REST v4.1 | `/custom/service/v4_1_SticCustom/rest.php` |
 | `CRM_USER` | string | Usuario del CRM con permisos de API | `sinergiacrm` |
-
-> **Docker local:** las llamadas REST las hace PHP-FPM dentro del contenedor, donde
-> `localhost:8000` **no es alcanzable**. Usa el nombre del servicio Docker como URL:
-> `CRM_URL=http://sw-webserver/sinergiacrm`.
 | `CRM_PASSWORD` | string | Contraseña del usuario del CRM | (tu contraseña) |
 | `API_LANGUAGE` | string | Idioma para las interacciones con la API | `es_ES`, `ca_ES`, `gl_ES`, `en_us` |
+
+> **Workkit local:** las llamadas REST las hace PHP-FPM dentro de Docker; por ello el
+> default es `http://sw-webserver/sinergiacrm`. Si ejecutas el cliente fuera de los
+> contenedores, usa `http://localhost:8000/sinergiacrm`.
 
 ### Variables de entorno (alternativa)
 
 También puedes usar variables de entorno reales en lugar del archivo `.env`:
 
 ```bash
-export CRM_URL=https://tu-sinergiacrm.org
+export CRM_URL=http://sw-webserver/sinergiacrm
 export CRM_USER=tu-usuario
 export CRM_PASSWORD=tu-password
 export API_LANGUAGE=es_ES
@@ -75,7 +77,10 @@ Tarjeta que muestra la instancia a la que está conectado el cliente:
 - Ruta del endpoint API
 - Nombre de usuario
 
-El botón **Edit** despliega el formulario de configuración para sobrescribir los valores sin editar el código.
+El botón **Edit** despliega el formulario de configuración. **Save for this browser** guarda
+las sobrescrituras en el `localStorage` de este navegador; cada petición las envía en un
+header de esa petición y el servidor no las persiste. **Revert to .env Defaults** elimina
+los overrides locales.
 
 ### Dropdown List Lookup
 
@@ -127,6 +132,27 @@ Método API usado: `get_relationships`
 | `link_field_name` | Nombre del campo de relación |
 | `deleted` | 0 = solo activos, 1 = solo eliminados |
 | `limit` | Máximo de registros a devolver |
+
+### Set Relationship
+
+La tarjeta **Set Relationship** crea vínculos entre un registro principal y uno o más
+registros existentes. Introduce el módulo y UUID principal, el nombre del link field y los
+UUID relacionados separados por comas.
+
+Método API usado: `set_relationship`:
+
+```json
+{
+  "session": "session_id",
+  "module_name": "Contacts",
+  "module_id": "contact-uuid",
+  "link_field_name": "accounts",
+  "related_ids": ["account-uuid"]
+}
+```
+
+La interfaz admite de 1 a 100 IDs relacionados por petición. Usa el entorno de pruebas y
+un link field válido; la operación modifica relaciones en el CRM.
 
 ### Get Language Definition
 
@@ -277,18 +303,19 @@ La interfaz web incluye una tarjeta **Connection Settings** que permite:
 
 1. **Ver** la configuración actual (URL, endpoint, usuario)
 2. **Editar** haciendo clic en el botón **Edit**
-3. **Guardar** sobrescrituras en `config-override.json`
-4. **Revertir** a los valores por defecto del `.env`
+3. **Save for this browser** guarda las sobrescrituras solo en el `localStorage` de ese navegador
+4. **Revert to .env Defaults** borra los valores locales y vuelve a los valores por defecto
 
-Las sobrescrituras persisten entre sesiones pero no se suben al repositorio (el archivo `config-override.json` está en `.gitignore`).
+Las opciones del navegador no se guardan en `config-override.json` ni se comparten con otros
+usuarios. Cada llamada API las envía a PHP en un header de esa petición, donde se usan solo
+para esa ejecución. Los archivos `config-override.json` heredados se ignoran.
 
 La contraseña **nunca se muestra** en la interfaz — se muestra el texto "Password configured" si está definida. Para cambiarla hay que escribir un nuevo valor en el campo de contraseña.
 
 ### Orden de prioridad de configuración
 
-1. `config-override.json` (UI) — mayor prioridad
-2. `.env` — archivo de configuración principal
-3. Legacy `config.php` — fallback (PortalOauth solo)
+1. Override de `localStorage` (si existe)
+2. `.env` — valores por defecto del servidor
 
 ---
 
@@ -310,8 +337,8 @@ restCall(url, method, params) → Ejecuta llamada REST v4.1
 
 **Flujo de una llamada API desde la UI:**
 
-1. El JS hace `fetch('', { method: 'POST', body: formData })` al mismo `index.php`
-2. PHP recibe `$_POST['api_action']` y ejecuta la rama correspondiente
+1. El JS hace `fetch('', { method: 'POST', body: formData })` al mismo `index.php` e incluye los overrides de este navegador en `X-V4-API-Config`
+2. PHP recibe `$_POST['api_action']`, aplica esos valores solo a la petición y ejecuta la rama correspondiente
 3. PHP hace login → ejecuta el método → logout
 4. PHP devuelve JSON con el resultado
 5. JS renderiza el JSON en el panel de resultado
@@ -338,7 +365,6 @@ v4.1/
 ├── .env                   # Configuración (no se sube al repo)
 ├── .env.example           # Plantilla de configuración
 ├── README.md              # Esta documentación
-├── config-override.json   # Sobrescrituras de UI (no se sube)
 └── REST/
     ├── PHP/
     │   ├── app.php        # Script principal de ejemplos

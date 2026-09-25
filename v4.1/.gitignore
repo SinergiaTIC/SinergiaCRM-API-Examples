@@ -1,4 +1,2 @@
 .env
-.env.local
-*.log
 config-override.json

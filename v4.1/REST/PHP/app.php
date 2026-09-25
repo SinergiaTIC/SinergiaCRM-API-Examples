@@ -44,6 +44,13 @@ $verbose = true;
 
 ////////////////////    LOGIC APP    /////////////////////////
 
+if (PHP_SAPI !== 'cli') {
+    echo '<nav style="font:14px Arial,sans-serif;margin:1rem 0;display:flex;gap:1rem">'
+        . '<a href="../../../index.php">← All API examples</a>'
+        . '<a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" target="_blank" rel="noopener">Read Docs ↗</a>'
+        . '</nav>';
+}
+
 // Create the API client, start a session with the CRM and get a session ID
 include_once 'APIClient.php';
 $apiClient = new APIClient($url, $verbose);

@@ -25,7 +25,7 @@ Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del p
 cp .env.example .env
 
 # 2. Editar .env con tus credenciales
-#    CRM_URL=https://tu-sinergiacrm.org
+#    CRM_URL=http://localhost:8000/sinergiacrm
 #    OAUTH_CLIENT_ID=tu-client-id
 #    OAUTH_REDIRECT_URI=http://localhost:8000/PortalOauth/callback.php
 
@@ -43,8 +43,8 @@ El archivo `.env` contiene toda la configuración. Si no existe, el cliente usa 
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `CRM_URL` | URL pública del CRM (accesible desde el navegador) | `https://daniel.sinergiacrm.org` |
-| `CRM_INTERNAL` | URL interna para llamadas curl servidor-servidor. Útil en Docker (usa el nombre del servicio en lugar de localhost). Si está vacío se usa `CRM_URL`. | `http://sw-webserver/sinergiacrm` |
+| `CRM_URL` | URL del CRM accesible desde el navegador | `http://localhost:8000/sinergiacrm` |
+| `CRM_INTERNAL` | URL para llamadas curl servidor-servidor. Workkit Docker usa el hostname interno; fuera de Docker puede quedar vacío para usar `CRM_URL`. | `http://sw-webserver/sinergiacrm` |
 | `OAUTH_CLIENT_ID` | UUID del cliente OAuth2 (grant type: `portal_authorization_code`) | `00000bcf-9168-4c63-...` |
 | `OAUTH_CLIENT_SECRET` | Opcional. Solo para clientes OAuth2 *confidenciales* (creados con un secreto almacenado). Se envía en el intercambio de tokens (`client_secret`); déjalo vacío para clientes sin secreto. | *(vacío)* |
 | `OAUTH_REDIRECT_URI` | URL de callback de este cliente. Debe coincidir exactamente con la configurada en el OAuth2 Client del CRM. | `http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php` |
@@ -323,21 +323,23 @@ Códigos de error: `invalid_request`, `invalid_client`, `invalid_grant`, `unsupp
 
 ## Sobrescritura de configuración desde la UI
 
-La tarjeta **Connection Settings** permite cambiar la configuración sin editar archivos:
+La tarjeta **Connection Settings** permite personalizar la configuración para el navegador actual:
 
 1. Haz clic en **Edit**
 2. Cambia CRM URL, Internal URL, o Client ID
-3. Haz clic en **Save Override** → guarda en `config-override.json`
-4. Para volver a los valores del `.env`/`config.php`, haz clic en **Revert to Code Defaults**
+3. Haz clic en **Save for this browser** → guarda en el `localStorage` de este navegador
+4. Para volver a los valores de `.env`/`config.php`, haz clic en **Revert to Code Defaults**
 
-El archivo `config-override.json` es local y está en `.gitignore`.
-
-La página `callback.php` también carga los overrides automáticamente, así que los cambios se aplican al flujo completo sin necesidad de modificar dos archivos.
+Las opciones no se escriben en archivos compartidos del servidor ni afectan a otros
+usuarios o navegadores. Al iniciar sesión, la configuración seleccionada se envía por
+POST y se conserva solo en la sesión PHP de ese flujo para que `callback.php` pueda hacer
+el intercambio server-to-server. El secreto guardado por el usuario permanece en su
+`localStorage`; el secreto por defecto de `.env`/`config.php` no se expone al navegador.
 
 ### Orden de prioridad
 
-1. `config-override.json` (UI) — mayor prioridad
-2. `.env` — archivo de configuración principal
+1. Configuración personalizada guardada en el `localStorage` de este navegador
+2. `.env` — configuración predeterminada principal
 3. `config.php` — fallback legacy
 
 ---
@@ -348,9 +350,9 @@ La página `callback.php` también carga los overrides automáticamente, así qu
 
 ```
 loadPortalConfig()        → Carga config desde .env o config.php
-                           → Aplica overrides de config-override.json
-                           → Maneja POST save_settings / clear_settings
-                           → Genera state CSRF + URL de login
+                           → Carga overrides desde localStorage en el navegador
+                           → POST de inicio: guarda config transitoria en sesión PHP
+                           → Genera state CSRF + redirección al login del CRM
                            → Renderiza HTML con config card + settings form
 ```
 
@@ -358,6 +360,7 @@ loadPortalConfig()        → Carga config desde .env o config.php
 
 ```
 loadPortalConfig()        → Misma función de carga de config
+                           → Recupera config de este flujo desde sesión PHP
                            → Valida state CSRF contra cookie
                            → Intercambia código por tokens vía curl
                            → Sin código → redirige a index.php
@@ -390,9 +393,11 @@ Ambos archivos definen `loadPortalConfig()` de forma independiente (son autocont
 - El formulario de login del CRM incluye un campo oculto (`portal_hp`)
 - Si un bot lo rellena, el login se rechaza silenciosamente
 
-### Sin secretos en el código
+### Configuración aislada por navegador
 - El archivo `.env` está en `.gitignore`
-- `config-override.json` está en `.gitignore`
+- Los overrides de la interfaz se guardan en `localStorage`, no en un fichero compartido del servidor
+- La copia de configuración en sesión PHP dura solo lo necesario para completar el flujo OAuth
+- `localStorage` es accesible a JavaScript del mismo origen: en una aplicación real, no guardes ahí un secreto de producción; usa un cliente público o gestiona el secreto en tu backend
 - Las variables de entorno se leen con `getenv()` como alternativa
 
 ### El `client_secret` del cliente OAuth2

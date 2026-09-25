@@ -6,8 +6,8 @@
  * Web-based client for the SinergiaCRM v4.1 REST API.
  * Uses username/password authentication (not OAuth2).
  *
- * Configuration is read from .env. Copy .env.example to .env and set your values.
- * Any overrides are persisted to config-override.json and take precedence.
+ * Defaults are read from .env. Optional UI overrides live in the current
+ * browser's localStorage and are sent with each API request only.
  * The UI provides tool cards for common API operations including:
  *   - Dropdown list lookups from app_list_strings
  *   - Record retrieval by module and ID
@@ -52,7 +52,7 @@ function loadV4Config(): array
      *   - language:   Default language locale (e.g. es_ES, en_us)
      */
     return [
-        'crm_url'   => $vars['CRM_URL'] ?? 'http://localhost:8000/sinergiacrm',
+        'crm_url'   => $vars['CRM_URL'] ?? 'http://sw-webserver/sinergiacrm',
         'api_path'  => $vars['API_PATH'] ?? '/custom/service/v4_1_SticCustom/rest.php',
         'crm_user'  => $vars['CRM_USER'] ?? '',
         'crm_pass'  => $vars['CRM_PASSWORD'] ?? '',
@@ -60,71 +60,42 @@ function loadV4Config(): array
     ];
 }
 
-/**
- * ---------------------------------------------------------------------------
- * Configuration loading and override handling
- * ---------------------------------------------------------------------------
- *  1. Load base config from .env
- *  2. If config-override.json exists, merge its values on top
- *  3. Handle POST requests to persist or clear overrides
- */
-
-/** @var array $config Active configuration (base + overrides merged) */
+/** @var array $config Configuration defaults from .env */
 $config = loadV4Config();
 
-/** @var string $overrideFile Path to the JSON override file */
-$overrideFile = __DIR__ . '/config-override.json';
-
-/*
- * If an override file exists, merge its non-empty values on top of the
- * base configuration from .env.  Empty strings and nulls are filtered out
- * so that partial override files only replace what they explicitly define.
- */
-if (file_exists($overrideFile)) {
-    $overrides = json_decode(file_get_contents($overrideFile), true) ?? [];
-    $config = array_merge($config, array_filter($overrides, fn($v) => $v !== '' && $v !== null));
+/** Apply validated browser-local overrides to this API request only. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_action'])) {
+    $encodedConfig = $_SERVER['HTTP_X_V4_API_CONFIG'] ?? '';
+    if ($encodedConfig !== '' && strlen($encodedConfig) <= 16000) {
+        $decodedConfig = base64_decode($encodedConfig, true);
+        $requestConfig = $decodedConfig === false ? null : json_decode(rawurldecode($decodedConfig), true);
+        if (is_array($requestConfig)) {
+            if (isset($requestConfig['crm_url']) && is_string($requestConfig['crm_url']) && strlen($requestConfig['crm_url']) <= 2048) {
+                $parts = parse_url($requestConfig['crm_url']);
+                if ($parts !== false && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+                    && !empty($parts['host']) && empty($parts['user']) && empty($parts['pass'])) {
+                    $config['crm_url'] = $requestConfig['crm_url'];
+                }
+            }
+            if (isset($requestConfig['api_path']) && is_string($requestConfig['api_path'])
+                && strlen($requestConfig['api_path']) <= 512 && $requestConfig['api_path'] !== '' && $requestConfig['api_path'][0] === '/') {
+                $config['api_path'] = $requestConfig['api_path'];
+            }
+            foreach (['crm_user' => 256, 'crm_pass' => 4096, 'language' => 32] as $key => $maxLength) {
+                if (isset($requestConfig[$key]) && is_string($requestConfig[$key]) && strlen($requestConfig[$key]) <= $maxLength) {
+                    $config[$key] = $requestConfig[$key];
+                }
+            }
+        }
+    }
 }
 
-/** @var string $saveMsg Feedback message shown after saving / clearing settings */
-$saveMsg = '';
-
-/** @var bool $hasOverrides Whether a config-override.json file is currently active */
-$hasOverrides = file_exists($overrideFile);
-
-/**
- * Handle "Save Override" form submission.
- *
- * Collects the five config fields from POST and writes them to
- * config-override.json as a JSON object.  Empty values are excluded
- * so they fall through to the .env defaults.  The in-memory $config
- * array is then updated to reflect the new overrides immediately.
- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
-    $ov = array_filter([
-        'crm_url'   => $_POST['crm_url'] ?? '',
-        'api_path'  => $_POST['api_path'] ?? '',
-        'crm_user'  => $_POST['crm_user'] ?? '',
-        'crm_pass'  => $_POST['crm_pass'] ?? '',
-        'language'  => $_POST['language'] ?? '',
-    ], fn($v) => $v !== '' && $v !== null);
-    file_put_contents($overrideFile, json_encode($ov, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    $config = array_merge($config, $ov);
-    $hasOverrides = true;
-    $saveMsg = 'Settings saved.';
-}
-
-/**
- * Handle "Revert to .env Defaults" form submission.
- *
- * Deletes the config-override.json file if it exists, reloads the
- * base configuration from .env, and clears the $hasOverrides flag.
- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_settings'])) {
-    if (file_exists($overrideFile)) unlink($overrideFile);
-    $config = loadV4Config();
-    $hasOverrides = false;
-    $saveMsg = 'Overrides cleared — using .env defaults.';
-}
+$browserDefaults = [
+    'crm_url'  => $config['crm_url'],
+    'api_path' => $config['api_path'],
+    'crm_user' => $config['crm_user'],
+    'language' => $config['language'],
+];
 
 /**
  * ---------------------------------------------------------------------------
@@ -324,6 +295,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_action'])) {
             break;
 
         /**
+         * setRelationship
+         *
+         * Links one or more existing records to a parent record through a
+         * relationship link field.
+        */
+        case 'setRelationship':
+            $moduleValue = $_POST['module'] ?? '';
+            $moduleIdValue = $_POST['record_id'] ?? '';
+            $linkFieldValue = $_POST['link_field'] ?? '';
+            $moduleName = is_string($moduleValue) ? trim($moduleValue) : '';
+            $moduleId = is_string($moduleIdValue) ? trim($moduleIdValue) : '';
+            $linkField = is_string($linkFieldValue) ? trim($linkFieldValue) : '';
+            $relatedIds = $_POST['related_ids'] ?? [];
+            if (is_string($relatedIds)) {
+                $relatedIds = explode(',', $relatedIds);
+            }
+            if (!is_array($relatedIds)) {
+                $relatedIds = [];
+            }
+            $relatedIds = array_values(array_filter(array_map(
+                static function ($id) { return is_scalar($id) ? trim((string) $id) : ''; },
+                $relatedIds
+            ), static function ($id) { return $id !== '' && strlen($id) <= 64; }));
+
+            if ($moduleName === '' || $moduleId === '' || $linkField === '' || !$relatedIds || count($relatedIds) > 100) {
+                http_response_code(400);
+                $response = ['error' => 'Provide a module, record ID, link field, and between 1 and 100 related IDs.'];
+                break;
+            }
+
+            $response = restCall($url, 'set_relationship', [
+                'session' => $sessionId,
+                'module_name' => $moduleName,
+                'module_id' => $moduleId,
+                'link_field_name' => $linkField,
+                'related_ids' => $relatedIds,
+            ]);
+            break;
+
+        /**
          * getModuleFields
          *
          * Returns the field definitions (name, type, options, required)
@@ -453,6 +464,12 @@ function restCall(string $url, string $method, array $params): ?array
 
 /** @var bool $hasPass True if a CRM password is set in the current configuration */
 $hasPass = !empty($config['crm_pass']);
+$browserDefaults = [
+    'crm_url'  => $config['crm_url'],
+    'api_path' => $config['api_path'],
+    'crm_user' => $config['crm_user'],
+    'language' => $config['language'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -462,6 +479,7 @@ $hasPass = !empty($config['crm_pass']);
     <title>SinergiaCRM API v4.1</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0 }
+        [hidden] { display: none !important }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 960px; margin: 2rem auto; padding: 0 1.5rem;
@@ -515,6 +533,9 @@ $hasPass = !empty($config['crm_pass']);
         .btn-clear { background: #e0e0e0; color: #555 }
         .btn-clear:hover { background: #ccc }
         .save-msg { font-size: 0.75rem; color: #2e7d32; margin-top: 6px }
+        .page-nav { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem }
+        .page-nav a { color: #1976d2; font-size: 0.82rem; text-decoration: none }
+        .page-nav a:hover { text-decoration: underline }
 
         /* Tool cards */
         .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem }
@@ -553,6 +574,10 @@ $hasPass = !empty($config['crm_pass']);
     </style>
 </head>
 <body>
+    <nav class="page-nav" aria-label="Example navigation">
+        <a href="../index.php">← All API examples</a>
+        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+    </nav>
     <!--
         -------------------------------------------------------------------
         Page Header
@@ -570,16 +595,15 @@ $hasPass = !empty($config['crm_pass']);
         Connection Settings Card
         -------------------------------------------------------------------
         Shows the active configuration (CRM URL, API path, username).
-        When overrides are active a badge is displayed and the override
-        file path is shown.  Clicking "Edit" toggles the inline settings
-        form where values can be changed and persisted to config-override.json.
+            Browser-local overrides are marked. Clicking "Edit" opens the form
+            where this browser's settings can be saved to localStorage.
     -->
     <div class="config-card">
         <!-- Card header with title and toggle button -->
         <div class="config-header">
             <div class="config-title-row">
                 <h2>Connection Settings</h2>
-                <?php if ($hasOverrides): ?><span class="override-badge">overridden</span><?php endif; ?>
+                <span class="override-badge" id="overrideBadge" hidden>browser override</span>
             </div>
             <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
                 &#9881; Edit
@@ -590,28 +614,25 @@ $hasPass = !empty($config['crm_pass']);
         <div class="config-grid">
             <div class="config-item">
                 <span class="config-label">CRM URL</span>
-                <span class="config-value"><?= htmlspecialchars($config['crm_url']) ?></span>
+                <span class="config-value" id="displayCrmUrl"><?= htmlspecialchars($config['crm_url']) ?></span>
             </div>
             <div class="config-item">
                 <span class="config-label">API Path</span>
-                <span class="config-value"><code><?= htmlspecialchars($config['api_path']) ?></code></span>
+                <span class="config-value"><code id="displayApiPath"><?= htmlspecialchars($config['api_path']) ?></code></span>
             </div>
             <div class="config-item">
                 <span class="config-label">Username</span>
-                <span class="config-value"><?= htmlspecialchars($config['crm_user']) ?></span>
+                <span class="config-value" id="displayCrmUser"><?= htmlspecialchars($config['crm_user']) ?></span>
             </div>
         </div>
 
-        <!-- Display the override file path when overrides are active -->
-        <?php if ($hasOverrides): ?>
-        <div class="override-note">Overrides active from <code>config-override.json</code></div>
-        <?php endif; ?>
+        <div class="override-note" id="overrideNote" hidden>Settings are stored only in this browser's localStorage.</div>
 
         <!--
             Inline settings form (hidden by default, toggled via CSS class 'open').
-            Posts back to the same file with save_settings or clear_settings.
+            Stores browser-local values; API requests carry them in a per-request header.
         -->
-        <form method="post" id="settingsForm" class="settings-form">
+        <form id="settingsForm" class="settings-form">
             <div class="field-group">
                 <label for="crm_url">CRM URL</label>
                 <input type="text" name="crm_url" id="crm_url" value="<?= htmlspecialchars($config['crm_url']) ?>" placeholder="http://localhost:8000/sinergiacrm">
@@ -640,14 +661,14 @@ $hasPass = !empty($config['crm_pass']);
                 </select>
             </div>
             <div class="btn-row">
-                <button type="submit" name="save_settings" class="btn-sm btn-save">Save Override</button>
-                <?php if ($hasOverrides): ?>
-                <button type="submit" name="clear_settings" class="btn-sm btn-clear">Revert to .env Defaults</button>
-                <?php endif; ?>
+                <button type="button" id="saveSettings" class="btn-sm btn-save">Save for this browser</button>
+                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Revert to .env Defaults</button>
             </div>
-            <?php if ($saveMsg): ?><div class="save-msg"><?= htmlspecialchars($saveMsg) ?></div><?php endif; ?>
+            <div class="save-msg" id="saveMsg" role="status"></div>
         </form>
     </div>
+
+    <script type="application/json" id="v41ConfigDefaults"><?= json_encode($browserDefaults, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 
     <!--
         -------------------------------------------------------------------
@@ -694,6 +715,26 @@ $hasPass = !empty($config['crm_pass']);
             </div>
             <button class="btn-green" id="btnEntry" onclick="apiCallEntry()">Get Record</button>
             <div id="entryResult" class="result"></div>
+        </div>
+    </div>
+
+    <!-- Set Relationship -->
+    <div class="cards">
+        <div class="tool-card">
+            <h3>Set Relationship</h3>
+            <p class="desc">Link one or more existing records to a record through a relationship link field. Example: Contacts → <code>accounts</code>.</p>
+            <div class="input-group">
+                <select id="setRelModule" aria-label="Base module">
+                    <?php foreach ($toolModules as $m): ?><option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option><?php endforeach; ?>
+                </select>
+                <input type="text" id="setRelRecordId" placeholder="Base record ID">
+            </div>
+            <div class="input-group">
+                <input type="text" id="setRelLinkField" placeholder="Link field (e.g. accounts)">
+                <input type="text" id="setRelRelatedIds" placeholder="Related IDs, comma-separated">
+            </div>
+            <button class="btn-green" id="btnSetRelationship" onclick="apiCallSetRelationship()">Set Relationship</button>
+            <div id="setRelResult" class="result"></div>
         </div>
     </div>
 
@@ -795,6 +836,70 @@ $hasPass = !empty($config['crm_pass']);
     -->
 
     <script>
+        const v41StorageKey = 'sinergiacrm.apiV41.configOverrides.v1';
+        const v41Defaults = JSON.parse(document.getElementById('v41ConfigDefaults').textContent);
+        let v41Overrides = {};
+        try {
+            const saved = JSON.parse(localStorage.getItem(v41StorageKey) || '{}');
+            if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+                ['crm_url', 'api_path', 'crm_user', 'crm_pass', 'language'].forEach((key) => {
+                    if (typeof saved[key] === 'string') v41Overrides[key] = saved[key];
+                });
+            }
+        } catch (error) {
+            document.getElementById('saveMsg').textContent = 'Browser storage unavailable; using .env defaults.';
+        }
+
+        function renderV41Settings() {
+            const cfg = { ...v41Defaults, ...v41Overrides };
+            document.getElementById('crm_url').value = cfg.crm_url || '';
+            document.getElementById('api_path').value = cfg.api_path || '';
+            document.getElementById('crm_user').value = cfg.crm_user || '';
+            document.getElementById('crm_pass').value = v41Overrides.crm_pass || '';
+            document.getElementById('language').value = cfg.language || 'es_ES';
+            document.getElementById('displayCrmUrl').textContent = cfg.crm_url || '';
+            document.getElementById('displayApiPath').textContent = cfg.api_path || '';
+            document.getElementById('displayCrmUser').textContent = cfg.crm_user || '';
+            const hasOverrides = Object.keys(v41Overrides).length > 0;
+            document.getElementById('overrideBadge').hidden = !hasOverrides;
+            document.getElementById('overrideNote').hidden = !hasOverrides;
+            document.getElementById('clearSettings').hidden = !hasOverrides;
+        }
+
+        document.getElementById('saveSettings').addEventListener('click', () => {
+            const next = {
+                crm_url: document.getElementById('crm_url').value.trim(),
+                api_path: document.getElementById('api_path').value.trim(),
+                crm_user: document.getElementById('crm_user').value.trim(),
+                language: document.getElementById('language').value,
+            };
+            const password = document.getElementById('crm_pass').value;
+            if (password !== '') next.crm_pass = password;
+            try {
+                localStorage.setItem(v41StorageKey, JSON.stringify(next));
+                v41Overrides = next;
+                renderV41Settings();
+                document.getElementById('saveMsg').textContent = 'Settings saved in this browser only.';
+            } catch (error) {
+                document.getElementById('saveMsg').textContent = 'Could not save settings in this browser.';
+            }
+        });
+
+        document.getElementById('clearSettings').addEventListener('click', () => {
+            try { localStorage.removeItem(v41StorageKey); } catch (error) {}
+            v41Overrides = {};
+            renderV41Settings();
+            document.getElementById('saveMsg').textContent = 'Browser overrides cleared; using .env defaults.';
+        });
+
+        function v41ApiFetch(url, options = {}) {
+            const headers = new Headers(options.headers || {});
+            headers.set('X-V4-API-Config', btoa(encodeURIComponent(JSON.stringify(v41Overrides))));
+            return fetch(url, { ...options, headers });
+        }
+
+        renderV41Settings();
+
         /**
          * Generic API call helper used by most tool cards.
          *
@@ -829,7 +934,7 @@ $hasPass = !empty($config['crm_pass']);
 
             try {
                 /** POST to the same URL (empty action = self) */
-                const resp = await fetch('', { method: 'POST', body: fd });
+                const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
 
                 /** Render the JSON response inside a dark-themed <pre> block */
@@ -870,7 +975,7 @@ $hasPass = !empty($config['crm_pass']);
             fd.append('record_id', id);
 
             try {
-                const resp = await fetch('', { method: 'POST', body: fd });
+                const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
                 result.innerHTML = `<div class="summary">get_entry (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
@@ -909,9 +1014,50 @@ $hasPass = !empty($config['crm_pass']);
             fd.append('link_field', link);
 
             try {
-                const resp = await fetch('', { method: 'POST', body: fd });
+                const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
                 result.innerHTML = `<div class="summary">get_relationships (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        /** Link one or more related record IDs through a v4.1 relationship field. */
+        async function apiCallSetRelationship() {
+            const btn = document.getElementById('btnSetRelationship');
+            const result = document.getElementById('setRelResult');
+            const module = document.getElementById('setRelModule').value;
+            const recordId = document.getElementById('setRelRecordId').value.trim();
+            const linkField = document.getElementById('setRelLinkField').value.trim();
+            const relatedIds = document.getElementById('setRelRelatedIds').value
+                .split(/[\s,]+/)
+                .map((id) => id.trim())
+                .filter(Boolean);
+
+            if (!recordId || !linkField || relatedIds.length === 0) {
+                result.innerHTML = '<div class="error">Enter the base record ID, link field, and at least one related ID.</div>';
+                return;
+            }
+            if (relatedIds.length > 100) {
+                result.innerHTML = '<div class="error">A maximum of 100 related IDs can be linked per request.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Authenticating and setting relationship...</div>';
+            const fd = new FormData();
+            fd.append('api_action', 'setRelationship');
+            fd.append('module', module);
+            fd.append('record_id', recordId);
+            fd.append('link_field', linkField);
+            relatedIds.forEach((id) => fd.append('related_ids[]', id));
+
+            try {
+                const resp = await v41ApiFetch('', { method: 'POST', body: fd });
+                const data = await resp.json();
+                result.innerHTML = `<div class="summary">set_relationship (${module}.${linkField}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
                 result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
             } finally {
@@ -957,7 +1103,7 @@ $hasPass = !empty($config['crm_pass']);
             result.innerHTML = '<div class="loading">Authenticating and executing...</div>';
 
             try {
-                const resp = await fetch('', { method: 'POST', body: fd });
+                const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
                 result.innerHTML = `<div class="summary">set_entry (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {

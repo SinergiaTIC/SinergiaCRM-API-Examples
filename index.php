@@ -66,7 +66,7 @@
                 access + refresh tokens, then retrieve user profile and relationship data.
             </p>
             <a href="PortalOauth/" class="btn">Open PortalOauth Demo</a>
-            <a href="PortalOauth/README.md" class="btn btn-outline">Read Docs</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
         </div>
 
         <hr class="divider">
@@ -79,7 +79,7 @@
                 related project data, inspect enum field values, and explore available modules.
             </p>
             <a href="v8/" class="btn">Open V8 API Client</a>
-            <a href="v8/README.md" class="btn btn-outline">Read Docs</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
         </div>
 
         <hr class="divider">
@@ -90,9 +90,10 @@
                 <strong>Legacy REST API v4.1</strong> client using username/password authentication.
                 Supports <code>get_entry</code>, <code>get_relationships</code>, <code>get_module_fields</code>,
                 <code>get_available_modules</code>, <code>set_entry</code>, and more via the
-                <code>v4_1_SticCustom</code> endpoint.
+                <code>v4_1_SticCustom</code> endpoint. Explore records and relationships, create or update records, and link existing records with <code>set_relationship</code>.
             </p>
             <a href="v4.1/" class="btn">Open v4.1 Client</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
         </div>
 
         <hr class="divider">
@@ -100,10 +101,7 @@
         <div class="section">
             <h2>Configuration</h2>
             <p>
-                Each demo uses a <code>.env</code> file for its configuration (copy <code>.env.example</code> and edit).
-                You can also override settings from the UI — each client page has a
-                "Connection Settings" card where you can change the CRM URL and client credentials
-                without editing files. Saved overrides persist via a local <code>config-override.json</code> file.
+                Each demo uses <code>.env</code> for default configuration. UI overrides are saved in the current browser's <code>localStorage</code> and sent only with that browser's API requests; they are not stored in a shared server file.
             </p>
         </div>
     </div>

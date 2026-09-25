@@ -36,7 +36,7 @@ if (empty($env)) {
     exit(1);
 }
 
-define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://localhost:8000', '/'));
+define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://sw-webserver/sinergiacrm', '/'));
 define('OAUTH2_CLIENT_ID', $env['OAUTH2_CLIENT_ID'] ?? '');
 define('OAUTH2_CLIENT_SECRET', $env['OAUTH2_CLIENT_SECRET'] ?? '');
 

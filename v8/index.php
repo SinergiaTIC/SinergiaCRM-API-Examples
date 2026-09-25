@@ -20,15 +20,15 @@
  *   - getDropdown        Look up a dropdown list by its list_key across
  *                        known module fields.
  *
- * Configuration is read from `.env` in the same directory, with optional
- * runtime overrides from `config-override.json` (written by the UI's
- * "Save Override" button). Copy `.env.example` to `.env` and set your
- * credentials before use.
+ * Default configuration is read from `.env` in the same directory. Optional
+ * UI overrides are stored in the current browser's localStorage and sent with
+ * each API request; they are never persisted to a shared server-side file.
+ * Copy `.env.example` to `.env` and set your defaults before use.
  *
  * @license MIT
  */
 
-/** Directory containing this file — used to locate .env and config-override.json */
+/** Directory containing this file — used to locate .env */
 define('APP_DIR', __DIR__);
 
 /** MIME type required by SuiteCRM V8 JSON:API for all requests */
@@ -57,74 +57,51 @@ function loadEnv(): array
     return $vars;
 }
 
-/**
- * Load UI-based overrides from `config-override.json` in APP_DIR.
- *
- * These overrides are written by the "Save Override" button in the HTML UI
- * and take precedence over .env values. If the file doesn't exist or can't
- * be parsed, an empty array is returned.
- *
- * @return array An associative array of overridden config values.
- */
-function loadOverrides(): array
-{
-    $f = APP_DIR . '/config-override.json';
-    if (file_exists($f)) {
-        return json_decode(file_get_contents($f), true) ?? [];
-    }
-    return [];
-}
-
-/** ──────── Bootstrap: load configuration from .env and override file ─────── */
+/** ──────── Bootstrap: load .env defaults + this request's browser overrides ─────── */
 
 $env = loadEnv();
-$overrides = loadOverrides();
-
-/**
- * Merge overrides on top of .env values. Non-empty, non-null override values
- * take precedence over the corresponding .env entries.
- */
-$env = array_merge($env, array_filter($overrides, fn($v) => $v !== '' && $v !== null));
+$overrideHeader = $_SERVER['HTTP_X_API_CLIENT_CONFIG'] ?? '';
+if ($overrideHeader !== '' && strlen($overrideHeader) <= 12000) {
+    $overrideJson = base64_decode($overrideHeader, true);
+    $requestOverrides = $overrideJson === false ? null : json_decode(rawurldecode($overrideJson), true);
+    if (is_array($requestOverrides)) {
+        if (isset($requestOverrides['SUITECRM_BASE_URL'])
+            && is_string($requestOverrides['SUITECRM_BASE_URL'])
+            && strlen($requestOverrides['SUITECRM_BASE_URL']) <= 2048) {
+            $parts = parse_url($requestOverrides['SUITECRM_BASE_URL']);
+            if ($parts !== false
+                && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+                && !empty($parts['host'])
+                && empty($parts['user'])
+                && empty($parts['pass'])) {
+                $env['SUITECRM_BASE_URL'] = $requestOverrides['SUITECRM_BASE_URL'];
+            }
+        }
+        if (isset($requestOverrides['OAUTH2_CLIENT_ID'])
+            && is_string($requestOverrides['OAUTH2_CLIENT_ID'])
+            && strlen($requestOverrides['OAUTH2_CLIENT_ID']) <= 256) {
+            $env['OAUTH2_CLIENT_ID'] = $requestOverrides['OAUTH2_CLIENT_ID'];
+        }
+        if (isset($requestOverrides['OAUTH2_CLIENT_SECRET'])
+            && is_string($requestOverrides['OAUTH2_CLIENT_SECRET'])
+            && strlen($requestOverrides['OAUTH2_CLIENT_SECRET']) <= 4096) {
+            $env['OAUTH2_CLIENT_SECRET'] = $requestOverrides['OAUTH2_CLIENT_SECRET'];
+        }
+    }
+}
 
 /** SuiteCRM instance base URL (without trailing slash) */
-define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://localhost:8000', '/'));
+define('SUITECRM_BASE_URL', rtrim($env['SUITECRM_BASE_URL'] ?? 'http://sw-webserver/sinergiacrm', '/'));
 
 /** OAuth2 client credentials for the client_credentials grant flow */
 define('OAUTH2_CLIENT_ID', $env['OAUTH2_CLIENT_ID'] ?? '');
 define('OAUTH2_CLIENT_SECRET', $env['OAUTH2_CLIENT_SECRET'] ?? '');
 
-/** Whether any non-trivial overrides from config-override.json are active */
-$hasOverrides = !empty(array_filter($overrides, fn($v) => $v !== '' && $v !== null));
-
-/** Status message shown in the UI after saving or clearing settings */
-$saveMsg = '';
-
-/** ──────── Configuration save/clear handlers (POST from HTML UI) ──────── */
-
-/**
- * Handle "Save Override" form submission.
- * Persists the submitted SUITECRM_BASE_URL, OAUTH2_CLIENT_ID, and
- * OAUTH2_CLIENT_SECRET to config-override.json.
- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
-    $ov = array_filter([
-        'SUITECRM_BASE_URL'   => $_POST['SUITECRM_BASE_URL'] ?? '',
-        'OAUTH2_CLIENT_ID'    => $_POST['OAUTH2_CLIENT_ID'] ?? '',
-        'OAUTH2_CLIENT_SECRET' => $_POST['OAUTH2_CLIENT_SECRET'] ?? '',
-    ], fn($v) => $v !== '' && $v !== null);
-    file_put_contents(APP_DIR . '/config-override.json', json_encode($ov, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    $saveMsg = 'Settings saved.';
-}
-
-/**
- * Handle "Revert to .env Defaults" button.
- * Deletes config-override.json, removing all runtime overrides.
- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_settings'])) {
-    $f = APP_DIR . '/config-override.json';
-    if (file_exists($f)) unlink($f);
-    $saveMsg = 'Overrides cleared — using .env defaults.';
-}
+/** UI defaults are public; the .env client secret is deliberately not rendered. */
+$browserDefaults = [
+    'SUITECRM_BASE_URL' => SUITECRM_BASE_URL,
+    'OAUTH2_CLIENT_ID' => OAUTH2_CLIENT_ID,
+];
 
 /** ──────── API helper functions ──────── */
 
@@ -574,6 +551,10 @@ header('Content-Type: text/html; charset=utf-8');
             box-sizing: border-box;
         }
 
+        [hidden] {
+            display: none !important;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 1100px;
@@ -582,6 +563,10 @@ header('Content-Type: text/html; charset=utf-8');
             color: #222;
             background: #f8f9fa;
         }
+
+        .page-nav { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem }
+        .page-nav a { color: #1976d2; font-size: 0.82rem; text-decoration: none }
+        .page-nav a:hover { text-decoration: underline }
 
         h1 {
             font-size: 1.4rem;
@@ -977,6 +962,10 @@ header('Content-Type: text/html; charset=utf-8');
 </head>
 
 <body>
+    <nav class="page-nav" aria-label="Example navigation">
+        <a href="../index.php">← All API examples</a>
+        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+    </nav>
     <!-- ──────── Page header ──────── -->
     <h1>SinergiaCRM API V8 Client</h1>
     <p class="subtitle">
@@ -988,7 +977,7 @@ header('Content-Type: text/html; charset=utf-8');
         <div class="config-header">
             <div class="config-title-row">
                 <h2>Connection Settings</h2>
-                <?php if ($hasOverrides): ?><span class="override-badge">overridden</span><?php endif; ?>
+                <span class="override-badge" id="overrideBadge" hidden>browser override</span>
             </div>
             <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
                 &#9881; Edit
@@ -999,23 +988,21 @@ header('Content-Type: text/html; charset=utf-8');
             <div class="config-grid">
                 <div class="config-item">
                     <span class="config-label">CRM URL</span>
-                    <span class="config-value"><?= htmlspecialchars(SUITECRM_BASE_URL) ?></span>
+                    <span class="config-value" id="displayBaseUrl"><?= htmlspecialchars(SUITECRM_BASE_URL) ?></span>
                 </div>
                 <div class="config-item">
                     <span class="config-label">Client ID</span>
-                    <span class="config-value"><code><?= htmlspecialchars(OAUTH2_CLIENT_ID) ?></code></span>
+                    <span class="config-value"><code id="displayClientId"><?= htmlspecialchars(OAUTH2_CLIENT_ID) ?></code></span>
                 </div>
                 <div class="config-item">
                     <span class="config-label">Auth method</span>
                     <span class="config-value"><code>client_credentials</code> OAuth2 grant</span>
                 </div>
             </div>
-            <?php if ($hasOverrides): ?>
-            <div class="override-note">Overrides active from <code>config-override.json</code></div>
-            <?php endif; ?>
+            <div class="override-note" id="overrideNote" hidden>Overrides are stored only in this browser's localStorage.</div>
         </div>
         <!-- Collapsible settings edit form -->
-        <form method="post" id="settingsForm" class="settings-form">
+        <form id="settingsForm" class="settings-form">
             <div class="field-group">
                 <label for="baseUrl">SuiteCRM Base URL</label>
                 <input type="text" name="SUITECRM_BASE_URL" id="baseUrl" value="<?= htmlspecialchars(SUITECRM_BASE_URL) ?>" placeholder="http://localhost:8000/sinergiacrm">
@@ -1032,16 +1019,14 @@ header('Content-Type: text/html; charset=utf-8');
                 <div class="field-help"><?= OAUTH2_CLIENT_SECRET ? 'A secret is configured in <code>.env</code>. Leave blank to keep it, or type a new value to override.' : 'Required for the <code>client_credentials</code> OAuth2 grant. Kept in <code>.env</code> — do not commit.' ?></div>
             </div>
             <div class="btn-row">
-                <!-- Persists overrides to config-override.json -->
-                <button type="submit" name="save_settings" class="btn-sm btn-save">Save Override</button>
-                <?php if ($hasOverrides): ?>
-                <!-- Deletes config-override.json to revert to .env defaults -->
-                <button type="submit" name="clear_settings" class="btn-sm btn-clear">Revert to .env Defaults</button>
-                <?php endif; ?>
+                <button type="button" id="saveSettings" class="btn-sm btn-save">Save for this browser</button>
+                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Revert to .env Defaults</button>
             </div>
-            <?php if ($saveMsg): ?><div class="save-msg"><?= htmlspecialchars($saveMsg) ?></div><?php endif; ?>
+            <div class="save-msg" id="saveMsg" role="status"></div>
         </form>
     </div>
+
+    <script type="application/json" id="apiClientDefaults"><?= json_encode($browserDefaults, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 
     <!-- ──────── Tool cards: top row ──────── -->
     <div class="cards">
@@ -1091,6 +1076,69 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 
     <script>
+        const configStorageKey = 'sinergiacrm.apiV8.configOverrides.v1';
+        const configDefaults = JSON.parse(document.getElementById('apiClientDefaults').textContent);
+        let configOverrides = {};
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(configStorageKey) || '{}');
+            if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+                ['SUITECRM_BASE_URL', 'OAUTH2_CLIENT_ID', 'OAUTH2_CLIENT_SECRET'].forEach((key) => {
+                    if (typeof saved[key] === 'string') configOverrides[key] = saved[key];
+                });
+            }
+        } catch (error) {
+            document.getElementById('saveMsg').textContent = 'Browser storage is unavailable; using .env defaults.';
+        }
+
+        function renderConnectionSettings() {
+            const baseUrl = configOverrides.SUITECRM_BASE_URL ?? configDefaults.SUITECRM_BASE_URL;
+            const clientId = configOverrides.OAUTH2_CLIENT_ID ?? configDefaults.OAUTH2_CLIENT_ID;
+            document.getElementById('baseUrl').value = baseUrl || '';
+            document.getElementById('clientId').value = clientId || '';
+            document.getElementById('clientSecret').value = configOverrides.OAUTH2_CLIENT_SECRET || '';
+            document.getElementById('displayBaseUrl').textContent = baseUrl || '';
+            document.getElementById('displayClientId').textContent = clientId || '';
+            const hasOverrides = Object.keys(configOverrides).length > 0;
+            document.getElementById('overrideBadge').hidden = !hasOverrides;
+            document.getElementById('overrideNote').hidden = !hasOverrides;
+            document.getElementById('clearSettings').hidden = !hasOverrides;
+        }
+
+        document.getElementById('saveSettings').addEventListener('click', () => {
+            const next = {
+                SUITECRM_BASE_URL: document.getElementById('baseUrl').value.trim(),
+                OAUTH2_CLIENT_ID: document.getElementById('clientId').value.trim(),
+            };
+            const secret = document.getElementById('clientSecret').value;
+            if (secret !== '') next.OAUTH2_CLIENT_SECRET = secret;
+            try {
+                localStorage.setItem(configStorageKey, JSON.stringify(next));
+                configOverrides = next;
+                renderConnectionSettings();
+                document.getElementById('saveMsg').textContent = 'Settings saved in this browser only.';
+            } catch (error) {
+                document.getElementById('saveMsg').textContent = 'Could not save settings in this browser.';
+            }
+        });
+
+        document.getElementById('clearSettings').addEventListener('click', () => {
+            try { localStorage.removeItem(configStorageKey); } catch (error) {}
+            configOverrides = {};
+            renderConnectionSettings();
+            document.getElementById('saveMsg').textContent = 'Browser overrides cleared; using .env defaults.';
+        });
+
+        /** Attach browser-specific settings to this API request only. */
+        function apiFetch(url, options = {}) {
+            const headers = new Headers(options.headers || {});
+            const encodedConfig = btoa(encodeURIComponent(JSON.stringify(configOverrides)));
+            headers.set('X-API-Client-Config', encodedConfig);
+            return fetch(url, { ...options, headers });
+        }
+
+        renderConnectionSettings();
+
         /**
          * Fetch and display active stic_Contacts_Relationships for a contact.
          * Calls the `?action=getRelationships` endpoint with the entered contact ID.
@@ -1109,7 +1157,7 @@ header('Content-Type: text/html; charset=utf-8');
             result.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const resp = await fetch(`?action=getRelationships&contact_id=${encodeURIComponent(contactId)}`);
+                const resp = await apiFetch(`?action=getRelationships&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
                 if (!data.success) {
                     result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
@@ -1150,7 +1198,7 @@ header('Content-Type: text/html; charset=utf-8');
             result.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const resp = await fetch(`?action=getContact&contact_id=${encodeURIComponent(contactId)}`);
+                const resp = await apiFetch(`?action=getContact&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
                 if (!data.success) {
                     result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
@@ -1213,7 +1261,7 @@ header('Content-Type: text/html; charset=utf-8');
             result.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const resp = await fetch('?action=getRelationshipTypes');
+                const resp = await apiFetch('?action=getRelationshipTypes');
                 const data = await resp.json();
                 if (!data.success) {
                     result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
@@ -1250,7 +1298,7 @@ header('Content-Type: text/html; charset=utf-8');
             result.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const resp = await fetch('?action=getModules');
+                const resp = await apiFetch('?action=getModules');
                 const data = await resp.json();
                 const modules = data.data?.attributes;
                 if (!modules) {
@@ -1290,7 +1338,7 @@ header('Content-Type: text/html; charset=utf-8');
             btn.disabled = true;
             result.innerHTML = '<div class="loading">Looking up...</div>';
             try {
-                const resp = await fetch(`?action=getDropdown&list_key=${encodeURIComponent(key)}`);
+                const resp = await apiFetch(`?action=getDropdown&list_key=${encodeURIComponent(key)}`);
                 const data = await resp.json();
                 if (data.error) {
                     result.innerHTML = `<div class="error">${esc(data.error)}</div>`;

@@ -10,7 +10,7 @@ return [
 
     // Internal URL for curl calls from PHP (Docker container can't reach localhost:8000). If remote, just use the same as 'crm_url'.
 
-    'crm_internal'  => getenv('CRM_INTERNAL_URL') ?: 'http://sw-webserver/sinergiacrm',
+    'crm_internal'  => getenv('CRM_INTERNAL') ?: (getenv('CRM_INTERNAL_URL') ?: 'http://sw-webserver/sinergiacrm'),
 
     // OAuth2 Client UUID — create in CRM: Administration → OAuth2 Clients
     'client_id'     => getenv('OAUTH_CLIENT_ID')  ?: 'your-oauth2-client-uuid',

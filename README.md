@@ -36,24 +36,25 @@ Cliente web para la API REST v4.1 clásica con autenticación por usuario/contra
   - Obtener un registro por ID (get_entry)
   - Obtener definición de campos de un módulo (get_module_fields)
   - Obtener relaciones de un registro (get_relationships)
+  - Crear relaciones entre registros existentes (set_relationship)
   - Obtener definición de idioma (get_language_definition)
   - Crear/actualizar registros (set_entry)
 - **Configuración:** `.env` (copia `.env.example`)
 
 ## Configuración
 
-Cada cliente usa un archivo `.env` para su configuración. Copia el `.env.example` de cada directorio y edita los valores.
+Cada cliente usa `.env` como configuración por defecto. Copia el `.env.example` de cada directorio y edita los valores.
 
 ### Sobrescritura de configuración desde la UI
 
-Cada cliente tiene una tarjeta **Connection Settings** en su interfaz que muestra la instancia a la que está conectado. Puedes editar y guardar las opciones desde la UI sin modificar los archivos de código:
+Cada cliente tiene una tarjeta **Connection Settings**. Los cambios guardados desde la UI viven en el `localStorage` del navegador actual y se envían con sus peticiones; no se guardan en un archivo compartido del servidor:
 
 1. Haz clic en **Edit** en la tarjeta Connection Settings
 2. Cambia los valores (URL, client ID, credenciales, etc.)
-3. Haz clic en **Save Override** → se guarda en `config-override.json`
+3. Haz clic en **Save for this browser** → se guarda en el navegador actual
 4. Para volver a los valores por defecto, haz clic en **Revert**
 
-Los archivos `config-override.json` son locales y no se suben al repositorio (están en `.gitignore`).
+Los `config-override.json` heredados se ignoran. Cada navegador debe guardar sus propios valores.
 
 Las contraseñas nunca se muestran en el HTML — si están configuradas, se muestra "configured" y solo se sobrescriben si se escribe un nuevo valor.
 
