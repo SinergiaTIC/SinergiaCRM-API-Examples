@@ -410,7 +410,7 @@ GET sticPortalOAuthToken?access_token={token}
       "end_date": "",
       "role": "Coordinator",
       "project_name": "Project Alpha",
-      "stic_portal_decidim_excluded_c": false
+      "decidim_excluded": 0
     }
   ]
 }
@@ -465,7 +465,7 @@ Cada relación incluye:
 | `role` | Rol en la relación |
 | `project_name` | Nombre del proyecto |
 | `project_id` | UUID del proyecto |
-| `stic_portal_decidim_excluded_c` | Excluido de Decidim |
+| `decidim_excluded` | Excluido de Decidim |
 
 ### Errores (400)
 
