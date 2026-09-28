@@ -6,15 +6,18 @@ Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del p
 
 1. [Inicio rápido](#inicio-rápido)
 2. [Configuración](#configuración)
-3. [El client_secret: qué hace y por qué importa](#el-client_secret--qué-hace-y-por-qué-importa)
-4. [Flujo OAuth2](#flujo-oauth2)
-5. [Endpoints del CRM](#endpoints-del-crm)
-6. [Respuesta del token](#respuesta-del-token)
-7. [Interfaz web](#interfaz-web)
-8. [Sobrescritura de configuración desde la UI](#sobrescritura-de-configuración-desde-la-ui)
-9. [Arquitectura del código](#arquitectura-del-código)
-10. [Seguridad](#seguridad)
-11. [Requisitos](#requisitos)
+3. [Preparar credenciales en SinergiaCRM](#preparar-credenciales-en-sinergiacrm)
+4. [Integrar el login en una aplicación](#integrar-el-login-en-una-aplicación)
+5. [El client_secret: qué hace y por qué importa](#el-client_secret--qué-hace-y-por-qué-importa)
+6. [Flujo OAuth2](#flujo-oauth2)
+7. [Endpoints del CRM](#endpoints-del-crm)
+8. [Respuesta del token](#respuesta-del-token)
+9. [Interfaz web](#interfaz-web)
+10. [Sobrescritura de configuración desde la UI](#sobrescritura-de-configuración-desde-la-ui)
+11. [Arquitectura del código](#arquitectura-del-código)
+12. [Seguridad](#seguridad)
+13. [Requisitos](#requisitos)
+14. [Enlaces](#enlaces)
 
 ---
 
@@ -48,6 +51,180 @@ El archivo `.env` contiene toda la configuración. Si no existe, el cliente usa 
 | `OAUTH_CLIENT_ID` | UUID del cliente OAuth2 (grant type: `portal_authorization_code`) | `00000bcf-9168-4c63-...` |
 | `OAUTH_CLIENT_SECRET` | Opcional. Solo para clientes OAuth2 *confidenciales* (creados con un secreto almacenado). Se envía en el intercambio de tokens (`client_secret`); déjalo vacío para clientes sin secreto. | *(vacío)* |
 | `OAUTH_REDIRECT_URI` | URL de callback de este cliente. Debe coincidir exactamente con la configurada en el OAuth2 Client del CRM. | `http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php` |
+
+---
+
+## Preparar credenciales en SinergiaCRM
+
+Antes de integrar la plataforma, crea un cliente OAuth2 de portal en la instancia de
+SinergiaCRM:
+
+1. Entra en SinergiaCRM con un usuario administrador.
+2. Abre **Administración → OAuth2 Clients → New Portal Client (Authorization Code)**.
+3. Completa **Name** con un nombre reconocible para la integración.
+4. En **Redirect URL**, registra la URL HTTPS del callback de tu aplicación, por ejemplo
+   `https://plataforma.example.org/auth/sinergiacrm/callback`. Debe ser la misma que la
+   aplicación enviará como `redirect_uri`; se recomienda usar coincidencia exacta.
+5. Elige el tipo de cliente:
+   - **Backend/confidencial**: marca **Is Confidential** y define **Change secret**. Copia
+     el secreto antes de guardar: SinergiaCRM guarda su hash y no permite recuperarlo
+     después. El secreto debe quedarse en el servidor de la plataforma.
+   - **Público**: deja **Is Confidential** desmarcado y no configures secreto. Nunca
+     incluyas un secreto en JavaScript, una app móvil o código distribuido al usuario.
+6. Guarda el cliente. La pantalla del cliente muestra su UUID; úsalo como
+   `OAUTH_CLIENT_ID`. SinergiaCRM asigna automáticamente el grant
+   `portal_authorization_code` al crear el cliente desde esta opción.
+7. Guarda `OAUTH_CLIENT_ID`, el callback registrado y, si aplica, el secreto en la
+   configuración privada del servidor de la aplicación. No los pongas en el repositorio.
+
+El cliente OAuth identifica **la aplicación**; cada Persona u Organización inicia sesión
+con su propia cuenta del portal. Comprueba también que los registros que deban entrar
+tienen habilitado el acceso al portal y un usuario/contraseña válido.
+
+### Preparar Personas y Organizaciones que iniciarán sesión
+
+Comprueba que el registro de **Personas** o **Organizaciones** tiene un email principal
+válido. Para enviar la invitación a la aplicación:
+
+1. Abre el registro y pulsa **Portal Actions** en la vista de detalle, o selecciona uno o
+   varios registros en la vista de lista y pulsa **Portal Actions** en el menú de acciones.
+2. Elige **Send Invitation Email** y la aplicación OAuth2 de destino; pulsa **Execute**.
+3. La persona recibe el enlace para establecer su contraseña y, al terminar, vuelve a la
+   aplicación seleccionada.
+
+También se puede elegir **Send Password Reset** para enviar un enlace de restablecimiento.
+Estas acciones están disponibles para los usuarios del CRM que tienen acceso al módulo y
+al registro; **no son exclusivas de administradores**. Al enviar una invitación, SinergiaCRM
+activa el acceso al portal y, si falta **Portal Username**, usa el email principal del
+registro. 
+
+---
+
+## Integrar el login en una aplicación
+
+La integración recomendada para una plataforma web es hacer el intercambio de código en
+su **backend**. La aplicación no recibe ni solicita la contraseña del usuario; la persona
+se autentica directamente en SinergiaCRM y la plataforma recibe el perfil del portal.
+
+### 1. Iniciar la autorización
+
+Al pulsar «Entrar con SinergiaCRM», genera un `state` impredecible y guárdalo en la sesión
+del navegador antes de redirigir. Usa la URL pública del CRM (accesible desde el navegador)
+y envía el callback registrado en SinergiaCRM:
+
+```php
+<?php
+session_start();
+
+$crmUrl = 'https://crm.example.org/sinergiacrm';
+$clientId = getenv('OAUTH_CLIENT_ID');
+$redirectUri = 'https://plataforma.example.org/auth/sinergiacrm/callback';
+
+$state = bin2hex(random_bytes(32));
+$_SESSION['sinergiacrm_oauth_state'] = $state;
+
+$authorizeUrl = rtrim($crmUrl, '/') . '/index.php?' . http_build_query([
+    'entryPoint' => 'sticPortalLogin',
+    'client_id' => $clientId,
+    'redirect_uri' => $redirectUri,
+    'response_type' => 'code',
+    'state' => $state,
+]);
+
+header('Location: ' . $authorizeUrl, true, 302);
+exit;
+```
+
+No aceptes un `redirect_uri` arbitrario del navegador: usa el valor fijo configurado para
+esa integración y registrado en el cliente OAuth2.
+
+### 2. Validar callback e intercambiar el código
+
+SinergiaCRM redirige al callback con `code` y `state`. Compara `state` con el valor guardado
+en la sesión y consúmelo una sola vez. Después canjea el código **desde el servidor**:
+
+```php
+<?php
+session_start();
+
+$expectedState = $_SESSION['sinergiacrm_oauth_state'] ?? '';
+$receivedState = $_GET['state'] ?? '';
+unset($_SESSION['sinergiacrm_oauth_state']);
+
+if ($expectedState === '' || !hash_equals($expectedState, $receivedState)) {
+    http_response_code(400);
+    exit('Respuesta OAuth inválida (state).');
+}
+
+if (!empty($_GET['error'])) {
+    http_response_code(401);
+    exit('SinergiaCRM no autorizó el acceso.');
+}
+
+$crmInternal = getenv('CRM_INTERNAL') ?: 'https://crm.example.org/sinergiacrm';
+$clientId = getenv('OAUTH_CLIENT_ID');
+$clientSecret = getenv('OAUTH_CLIENT_SECRET') ?: ''; // Solo backend confidencial
+$redirectUri = 'https://plataforma.example.org/auth/sinergiacrm/callback';
+$code = $_GET['code'] ?? '';
+if ($code === '') {
+    http_response_code(400);
+    exit('Falta el código de autorización.');
+}
+
+$form = [
+    'grant_type' => 'authorization_code',
+    'code' => $code,
+    'client_id' => $clientId,
+    'redirect_uri' => $redirectUri,
+];
+if ($clientSecret !== '') {
+    $form['client_secret'] = $clientSecret;
+}
+
+$ch = curl_init(rtrim($crmInternal, '/') . '/index.php?entryPoint=sticPortalOAuthToken');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => http_build_query($form),
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 15,
+]);
+$body = curl_exec($ch);
+$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+$tokenResponse = json_decode($body ?: '', true);
+if ($status !== 200 || !is_array($tokenResponse) || !empty($tokenResponse['error'])) {
+    http_response_code(401);
+    exit('No se pudo completar el intercambio OAuth.');
+}
+
+// Guarda tokens y perfil en la sesión/almacenamiento privado de tu aplicación.
+$_SESSION['portal_identity'] = [
+    'portal_type' => $tokenResponse['portal_type'],
+    'portal_id' => $tokenResponse['portal_id'],
+    'user' => $tokenResponse['user'] ?? null,
+    'relationships' => $tokenResponse['relationships'] ?? [],
+];
+$_SESSION['portal_access_token'] = $tokenResponse['access_token'];
+$_SESSION['portal_refresh_token'] = $tokenResponse['refresh_token'];
+```
+
+Adapta el ejemplo al framework de tu plataforma: usa su sesión y manejo de errores, y no
+imprimas tokens/secreto en logs o en la respuesta HTML.
+
+### 3. Crear la sesión de la plataforma
+
+El intercambio incluye `portal_type` (`Contact` o `Account`), `portal_id`, `user` y
+`relationships`. Vincula la cuenta local usando **el par `portal_type` + `portal_id`**; no
+uses únicamente el email como identificador, porque puede cambiar o no ser único entre
+tipos de registro. Aplica en la plataforma sus propias reglas de alta, permisos y sesión.
+
+### 4. Renovar tokens
+
+El access token caduca en una hora y el refresh token dura 30 días. Cuando renueves, envía
+`grant_type=refresh_token`, `refresh_token` y `client_id` al mismo endpoint. Incluye también
+`client_secret` para clientes confidenciales. La respuesta contiene nuevos tokens y el
+refresh token anterior queda revocado: reemplázalo de forma segura en tu almacenamiento.
 
 ---
 
@@ -94,10 +271,11 @@ detectar abusos.
 
 Cuando la aplicación se ejecuta donde el "secreto" llegaría al usuario final: **SPA en el
 navegador, móvil o escritorio**. Un secreto dentro del bundle es público de todas formas,
-así que configurarlo no añade seguridad y solo rompería tu integración. Para esos casos usa
-un cliente **público** (sin secreto), exactamente como están configurados *App Alpha/Beta*
-en el entorno local; la protección la aportan el redirect-uri registrado (debe empezar por
-la URL configurada) y los códigos de un solo uso que caducan a los 10 minutos.
+así que configurarlo no añade seguridad. Esta implementación no negocia PKCE; por ello, para
+una plataforma web se recomienda un callback backend (patrón *backend-for-frontend*) que
+mantenga los tokens fuera del navegador. Si aun así integras un cliente público, déjalo sin
+secreto y evalúa explícitamente el riesgo de que un código o token expuesto sea utilizado
+por terceros; `state`, el redirect registrado y el código de un solo uso no sustituyen PKCE.
 
 > **Resumen:** pon `OAUTH_CLIENT_SECRET` cuando tu `callback.php` corre en **servidor
 > propio** (PHP, Node, etc.) y quieres que quien tenga un código o token suelto no pueda
