@@ -20,6 +20,6 @@ return [
     // exchange when set.
     'client_secret' => getenv('OAUTH_CLIENT_SECRET') ?: '',
 
-    // Must match the redirect_uri on the OAuth2 Client exactly
-    'redirect_uri'  => getenv('OAUTH_REDIRECT_URI') ?: 'http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php',
+    // Optional. When empty, the browser derives the callback from this app's public URL.
+    'redirect_uri'  => getenv('OAUTH_REDIRECT_URI') ?: '',
 ];

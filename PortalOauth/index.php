@@ -330,7 +330,7 @@ $browserDefaults = [
                 <div class="field-group">
                     <label for="redirect_uri">OAuth Redirect URI (callback)</label>
                     <input type="text" name="redirect_uri" id="redirect_uri" value="<?= htmlspecialchars($config['redirect_uri']) ?>" placeholder="https://myapp.example.com/PortalOauth/callback.php">
-                    <div class="field-help">Must match the Redirect URL registered on the CRM OAuth2 client.</div>
+                    <div class="field-help">Defaults to this app's public URL plus <code>/callback.php</code> when unset. Must match the Redirect URL registered on the CRM OAuth2 client.</div>
                 </div>
                 <div class="field-group">
                     <label for="client_secret">Client Secret <em>(optional)</em></label>
@@ -350,6 +350,9 @@ $browserDefaults = [
         (() => {
             const storageKey = 'sinergiacrm.portalOauth.configOverrides.v1';
             const defaults = JSON.parse(document.getElementById('portalOauthDefaults').textContent);
+            if (!defaults.redirect_uri) {
+                defaults.redirect_uri = new URL('callback.php', window.location.href).href;
+            }
             const fields = ['crm_url', 'crm_internal', 'client_id', 'redirect_uri'];
             const form = document.getElementById('settingsForm');
             const saveMsg = document.getElementById('saveMsg');
@@ -359,7 +362,10 @@ $browserDefaults = [
                 const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
                 if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
                     ['crm_url', 'crm_internal', 'client_id', 'redirect_uri', 'client_secret'].forEach((name) => {
-                        if (typeof saved[name] === 'string') overrides[name] = saved[name];
+                        if (typeof saved[name] === 'string'
+                            && (name !== 'redirect_uri' || saved[name].trim() !== '')) {
+                            overrides[name] = saved[name];
+                        }
                     });
                 }
             } catch (error) {
@@ -386,7 +392,10 @@ $browserDefaults = [
 
             document.getElementById('saveSettings').addEventListener('click', () => {
                 const next = {};
-                fields.forEach((name) => { next[name] = document.getElementById(name).value.trim(); });
+                fields.forEach((name) => {
+                    const value = document.getElementById(name).value.trim();
+                    if (name !== 'redirect_uri' || value !== '') next[name] = value;
+                });
                 const secret = document.getElementById('client_secret').value;
                 if (secret !== '') next.client_secret = secret;
                 try {
