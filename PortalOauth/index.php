@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_login'])) {
         $crmUrl = trim((string) ($_POST['crm_url'] ?? $config['crm_url']));
         $crmInternal = trim((string) ($_POST['crm_internal'] ?? $config['crm_internal']));
         $clientId = trim((string) ($_POST['client_id'] ?? $config['client_id']));
+        $redirectUri = trim((string) ($_POST['redirect_uri'] ?? $config['redirect_uri']));
         $urlIsValid = static function ($url) {
             if ($url === '') return true;
             $parts = parse_url($url);
@@ -99,16 +100,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_login'])) {
                 && empty($parts['pass']);
         };
 
-        if (!$urlIsValid($crmUrl) || !$urlIsValid($crmInternal) || $crmUrl === '') {
+        if (!$urlIsValid($crmUrl) || !$urlIsValid($crmInternal) || !$urlIsValid($redirectUri)
+            || $crmUrl === '' || $redirectUri === '') {
             http_response_code(400);
-            $saveMsg = 'Enter valid HTTP or HTTPS CRM URLs.';
+            $saveMsg = 'Enter valid HTTP or HTTPS CRM and callback URLs.';
         } else {
             $flowConfig = [
                 'crm_url'       => $crmUrl,
                 'crm_internal'  => $crmInternal,
                 'client_id'     => $clientId,
                 'client_secret' => $config['client_secret'] ?? '',
-                'redirect_uri'  => $config['redirect_uri'],
+                'redirect_uri'  => $redirectUri,
             ];
             if (($_POST['has_client_secret_override'] ?? '') === '1') {
                 $flowConfig['client_secret'] = (string) ($_POST['client_secret'] ?? '');
@@ -146,6 +148,7 @@ $browserDefaults = [
     'crm_url'      => $config['crm_url'],
     'crm_internal' => $config['crm_internal'],
     'client_id'    => $config['client_id'],
+    'redirect_uri' => $config['redirect_uri'],
 ];
 ?>
 <!DOCTYPE html>
@@ -265,6 +268,7 @@ $browserDefaults = [
             <input type="hidden" name="crm_url" id="flowCrmUrl" value="<?= htmlspecialchars($browserDefaults['crm_url']) ?>">
             <input type="hidden" name="crm_internal" id="flowCrmInternal" value="<?= htmlspecialchars($browserDefaults['crm_internal']) ?>">
             <input type="hidden" name="client_id" id="flowClientId" value="<?= htmlspecialchars($browserDefaults['client_id']) ?>">
+            <input type="hidden" name="redirect_uri" id="flowRedirectUri" value="<?= htmlspecialchars($browserDefaults['redirect_uri']) ?>">
             <input type="hidden" name="has_client_secret_override" id="flowHasClientSecretOverride" value="0">
             <input type="hidden" name="client_secret" id="flowClientSecret" value="">
             <button type="submit" class="btn">Login with SinergiaCRM</button>
@@ -298,6 +302,10 @@ $browserDefaults = [
                     <span class="config-value"><code id="displayClientId"><?= htmlspecialchars($browserDefaults['client_id']) ?></code></span>
                 </div>
                 <div class="config-row">
+                    <span class="config-label">Callback URL</span>
+                    <span class="config-value" id="displayRedirectUri"><?= htmlspecialchars($browserDefaults['redirect_uri']) ?></span>
+                </div>
+                <div class="config-row">
                     <span class="config-label">Auth method</span>
                     <span class="config-value"><code>portal_authorization_code</code></span>
                 </div>
@@ -320,6 +328,11 @@ $browserDefaults = [
                     <div class="field-help">Portal OAuth2 client UUID with <code>portal_authorization_code</code> grant type.</div>
                 </div>
                 <div class="field-group">
+                    <label for="redirect_uri">OAuth Redirect URI (callback)</label>
+                    <input type="text" name="redirect_uri" id="redirect_uri" value="<?= htmlspecialchars($config['redirect_uri']) ?>" placeholder="https://myapp.example.com/PortalOauth/callback.php">
+                    <div class="field-help">Must match the Redirect URL registered on the CRM OAuth2 client.</div>
+                </div>
+                <div class="field-group">
                     <label for="client_secret">Client Secret <em>(optional)</em></label>
                     <input type="password" name="client_secret" id="client_secret" value="" placeholder="Leave unchanged to use the code default" autocomplete="new-password">
                     <div class="field-help">Optional browser-specific secret override. It is saved in this browser's localStorage and sent to the server only for this login flow.</div>
@@ -337,7 +350,7 @@ $browserDefaults = [
         (() => {
             const storageKey = 'sinergiacrm.portalOauth.configOverrides.v1';
             const defaults = JSON.parse(document.getElementById('portalOauthDefaults').textContent);
-            const fields = ['crm_url', 'crm_internal', 'client_id'];
+            const fields = ['crm_url', 'crm_internal', 'client_id', 'redirect_uri'];
             const form = document.getElementById('settingsForm');
             const saveMsg = document.getElementById('saveMsg');
             let overrides = {};
@@ -345,7 +358,7 @@ $browserDefaults = [
             try {
                 const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
                 if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
-                    ['crm_url', 'crm_internal', 'client_id', 'client_secret'].forEach((name) => {
+                    ['crm_url', 'crm_internal', 'client_id', 'redirect_uri', 'client_secret'].forEach((name) => {
                         if (typeof saved[name] === 'string') overrides[name] = saved[name];
                     });
                 }
@@ -361,9 +374,11 @@ $browserDefaults = [
                 document.getElementById('crm_url').value = config.crm_url || '';
                 document.getElementById('crm_internal').value = config.crm_internal || '';
                 document.getElementById('client_id').value = config.client_id || '';
+                document.getElementById('redirect_uri').value = config.redirect_uri || '';
                 document.getElementById('client_secret').value = overrides.client_secret || '';
                 document.getElementById('displayCrmUrl').textContent = config.crm_url || '';
                 document.getElementById('displayClientId').textContent = config.client_id || '';
+                document.getElementById('displayRedirectUri').textContent = config.redirect_uri || '';
                 document.getElementById('overrideBadge').hidden = !hasOverrides();
                 document.getElementById('overrideNote').hidden = !hasOverrides();
                 document.getElementById('clearSettings').hidden = !hasOverrides();
@@ -396,6 +411,7 @@ $browserDefaults = [
                 document.getElementById('flowCrmUrl').value = config.crm_url || '';
                 document.getElementById('flowCrmInternal').value = config.crm_internal || '';
                 document.getElementById('flowClientId').value = config.client_id || '';
+                document.getElementById('flowRedirectUri').value = config.redirect_uri || '';
                 const hasSecretOverride = Object.prototype.hasOwnProperty.call(overrides, 'client_secret');
                 document.getElementById('flowHasClientSecretOverride').value = hasSecretOverride ? '1' : '0';
                 document.getElementById('flowClientSecret').value = hasSecretOverride ? overrides.client_secret : '';

@@ -52,6 +52,12 @@ El archivo `.env` contiene toda la configuración. Si no existe, el cliente usa 
 | `OAUTH_CLIENT_SECRET` | Opcional. Solo para clientes OAuth2 *confidenciales* (creados con un secreto almacenado). Se envía en el intercambio de tokens (`client_secret`); déjalo vacío para clientes sin secreto. | *(vacío)* |
 | `OAUTH_REDIRECT_URI` | URL de callback de este cliente. Debe coincidir exactamente con la configurada en el OAuth2 Client del CRM. | `http://localhost:8000/SinergiaCRM-API-Examples/PortalOauth/callback.php` |
 
+La tarjeta **Connection Settings → Edit** también permite cambiar la URL de callback
+para el navegador actual. El valor se guarda en `localStorage` de ese navegador y se
+envía tanto en la solicitud de autorización como en el intercambio del código; debe
+coincidir con la URL registrada en el cliente OAuth2. **Revert to Code Defaults** elimina
+los overrides y vuelve a usar `OAUTH_REDIRECT_URI`.
+
 ---
 
 ## Preparar credenciales en SinergiaCRM
