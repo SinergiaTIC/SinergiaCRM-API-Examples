@@ -4,7 +4,10 @@ Colección de clientes demo para las diferentes APIs de SinergiaCRM. Abre `index
 
 ## Clientes disponibles
 
-### Portal OAuth2 Demo (`PortalOauth/`)
+### Portal OAuth2 Demo (`PortalOauth/`) — ⚠️ En desarrollo
+
+> **Nota:** este cliente aún está en desarrollo. La API y su documentación pueden cambiar.
+
 Cliente OAuth2 completo para apps externas que autentican usuarios del portal (Personas / Organizaciones). Implementa el flujo *authorization code grant*. La app nunca ve la contraseña del usuario.
 
 - **Autenticación:** `portal_authorization_code` OAuth2 grant (soporta `OAUTH_CLIENT_SECRET` para clientes confidenciales — [qué hace y cuándo usarlo](PortalOauth/README.md#el-client_secret--qué-hace-y-por-qué-importa))

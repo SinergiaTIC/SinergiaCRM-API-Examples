@@ -1,5 +1,7 @@
 # SinergiaCRM Portal OAuth2 — Demo Client
 
+> ⚠️ **Este cliente aún está en desarrollo.** La API y su documentación pueden cambiar.
+
 Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del portal (Personas / Organizaciones) contra SinergiaCRM. Implementa el flujo **authorization code grant** estándar.
 
 ## Tabla de contenidos

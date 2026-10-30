@@ -58,12 +58,13 @@
         </p>
 
         <div class="section">
-            <h2>Portal OAuth2 Demo</h2>
+            <h2>Portal OAuth2 Demo <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:11px;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ Under development</span></h2>
             <p>
                 Full OAuth2 authorization code flow for <strong>external apps</strong> authenticating
                 portal users (Contacts / Accounts). The app never sees the user's password —
                 they log in directly on the CRM portal. Exchange an authorization code for
-                access + refresh tokens, then retrieve user profile and relationship data.
+                access + refresh tokens, then retrieve user profile and relationship data.<br>
+                <em style="color:#e65100">This client is still under development; its API and docs may change.</em>
             </p>
             <a href="PortalOauth/" class="btn">Open PortalOauth Demo</a>
             <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>

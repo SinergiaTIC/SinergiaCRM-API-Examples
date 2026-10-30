@@ -297,13 +297,14 @@ $browserDefaults = [
             <a href="../index.php">← All API examples</a>
             <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
         </nav>
-        <h1>SinergiaCRM Portal OAuth2</h1>
+        <h1>SinergiaCRM Portal OAuth2 <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:0.65rem;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ Under development</span></h1>
         <p class="desc">
             <strong>Authorization code flow</strong> for external apps authenticating portal users.
             The app never sees the user's password — they log in directly on the SinergiaCRM portal,
             in a popup on this same website.<br><br>
             After login the <code>callback.php</code> endpoint performs a server-side token exchange
-            and the portal ID, portal type, primary email, and OAuth connection tokens appear here.
+            and the portal ID, portal type, primary email, and OAuth connection tokens appear here.<br>
+            <em style="color:#e65100">This demo client is still under development; its API and documentation may change.</em>
         </p>
         <form method="post" id="loginForm">
             <input type="hidden" name="start_login" value="1">
