@@ -8,8 +8,8 @@
  *
  * 1. Validates the anti-CSRF `state` parameter against the cookie.
  * 2. Performs a server-side `curl` POST to exchange the authorization
- *    code for an access token, refresh token, and user profile data.
- * 3. Renders the token info, user profile, and relationship data.
+ *    code for access and refresh tokens plus the portal identity.
+ * 3. Renders token info and the portal ID, type, and email.
  *
  * If no authorization code is present the user is redirected back to
  * index.php to start the login flow.
@@ -152,17 +152,6 @@ function h($s)
   return htmlspecialchars((string)$s);
 }
 
-/**
- * Format a table cell value — outputs an em-dash placeholder if the value
- * is null or empty, otherwise returns the HTML-escaped value.
- *
- * @param mixed $val Value to display in a table cell.
- * @return string Safe HTML string (either escaped value or placeholder).
- */
-function tableVal($val)
-{
-  return $val === null || $val === '' ? '<em style="color:#aaa">—</em>' : h($val);
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -171,7 +160,7 @@ function tableVal($val)
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OAuth Callback — SinergiaCRM</title>
-  <!-- Inline styles for the callback result page (tokens, user profile, relationships table, raw JSON) -->
+  <!-- Inline styles for the callback result page (tokens, portal identity, raw JSON) -->
   <style>
     * {
       box-sizing: border-box;
@@ -260,44 +249,6 @@ function tableVal($val)
       white-space: pre-wrap
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 8px
-    }
-
-    th,
-    td {
-      padding: 6px 8px;
-      text-align: left;
-      border-bottom: 1px solid #eee
-    }
-
-    th {
-      background: #f5f5f5;
-      font-weight: 600;
-      color: #555
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 600
-    }
-
-    .badge-active {
-      background: #c8e6c9;
-      color: #2e7d32
-    }
-
-    .badge-ended {
-      background: #ffcdd2;
-      color: #c62828
-    }
-
     .links {
       margin-top: 20px;
       font-size: 13px
@@ -353,7 +304,7 @@ function tableVal($val)
   <!--
   Callback result page:
     - Error banner (state mismatch, connection failure, API error)
-    - Success banner + token info, user profile, relationships table
+    - Success banner + token info and minimal portal identity
     - Raw JSON toggle for debugging the full response payload
     - Bottom bar with retry/reload links and connected instance info
   -->
@@ -371,11 +322,11 @@ function tableVal($val)
       <div class="msg msg-error"><?= h($error) ?></div>
     <?php endif; ?>
 
-    <!-- Token exchange succeeded — display everything the API returned -->
+    <!-- Token exchange succeeded — display OAuth tokens and minimal portal identity -->
     <?php if ($data && !isset($data['error'])): ?>
-      <div class="msg msg-success">Authentication successful! Here is everything your app received.</div>
+      <div class="msg msg-success">Authentication successful. The portal connection details are below.</div>
 
-      <!-- Section: Tokens (access, refresh, expiry, portal info) -->
+      <!-- Section: OAuth token details -->
       <h2>Tokens</h2>
       <div class="grid">
         <dt>Access Token</dt>
@@ -386,113 +337,19 @@ function tableVal($val)
         <dd><?= h($data['token_type']) ?></dd>
         <dt>Refresh Token</dt>
         <dd><code><?= h($data['refresh_token']) ?></code></dd>
-        <dt>Portal ID</dt>
-        <dd><code><?= h($data['portal_id']) ?></code></dd>
-        <dt>Portal Type</dt>
-        <dd><?= h($data['portal_type']) ?></dd>
       </div>
 
       <?php if (!empty($data['user'])): $u = $data['user']; ?>
-        <!-- Section: User profile — field list varies by portal type (Contact vs Account) -->
-        <h2>User Information (<?= h($data['portal_type']) ?>)</h2>
+        <!-- Section: Only the portal identity needed by the external application -->
+        <h2>Portal Identity</h2>
         <div class="grid">
-          <dt>ID</dt>
-          <dd><code><?= h($u['id']) ?></code></dd>
-          <?php if ($data['portal_type'] === 'Contact'): ?>
-            <dt>First Name</dt>
-            <dd><?= tableVal($u['first_name']) ?></dd>
-            <dt>Last Name</dt>
-            <dd><?= tableVal($u['last_name']) ?></dd>
-            <dt>Birthdate</dt>
-            <dd><?= tableVal($u['birthdate']) ?></dd>
-            <dt>Phone Mobile</dt>
-            <dd><?= tableVal($u['phone_mobile']) ?></dd>
-            <dt>Language</dt>
-            <dd><?= tableVal($u['stic_language_c']) ?></dd>
-            <dt>Gender</dt>
-            <dd><?= tableVal($u['stic_gender_c']) ?></dd>
-            <dt>Age</dt>
-            <dd><?= tableVal($u['stic_age_c']) ?></dd>
-            <dt>ID Number</dt>
-            <dd><?= tableVal($u['stic_identification_number_c']) ?></dd>
-            <dt>ID Type</dt>
-            <dd><?= tableVal($u['stic_identification_type_c']) ?></dd>
-            <dt>Address (ZIP)</dt>
-            <dd><?= tableVal($u['primary_address_postalcode']) ?></dd>
-            <dt>Address (Country)</dt>
-            <dd><?= tableVal($u['primary_address_country']) ?></dd>
-            <dt>Address (State)</dt>
-            <dd><?= tableVal($u['primary_address_state']) ?></dd>
-            <dt>Address (City)</dt>
-            <dd><?= tableVal($u['primary_address_city']) ?></dd>
-          <?php else: ?>
-            <dt>Name</dt>
-            <dd><?= tableVal($u['name']) ?></dd>
-            <dt>Phone Office</dt>
-            <dd><?= tableVal($u['phone_office']) ?></dd>
-            <dt>Phone Alt</dt>
-            <dd><?= tableVal($u['phone_alternate']) ?></dd>
-            <dt>Website</dt>
-            <dd><?= tableVal($u['website']) ?></dd>
-            <dt>Account Type</dt>
-            <dd><?= tableVal($u['account_type']) ?></dd>
-            <dt>Industry</dt>
-            <dd><?= tableVal($u['industry']) ?></dd>
-            <dt>Description</dt>
-            <dd><?= tableVal($u['description']) ?></dd>
-            <dt>ID Number</dt>
-            <dd><?= tableVal($u['stic_identification_number_c']) ?></dd>
-            <dt>ID Type</dt>
-            <dd><?= tableVal($u['stic_identification_type_c']) ?></dd>
-            <dt>Language</dt>
-            <dd><?= tableVal($u['stic_language_c']) ?></dd>
-            <dt>Address (ZIP)</dt>
-            <dd><?= tableVal($u['billing_address_postalcode']) ?></dd>
-            <dt>Address (Country)</dt>
-            <dd><?= tableVal($u['billing_address_country']) ?></dd>
-            <dt>Address (State)</dt>
-            <dd><?= tableVal($u['billing_address_state']) ?></dd>
-            <dt>Address (City)</dt>
-            <dd><?= tableVal($u['billing_address_city']) ?></dd>
-          <?php endif; ?>
-          <dt>Email</dt>
-          <dd><?= tableVal($u['email']) ?></dd>
+          <dt>Portal ID</dt>
+          <dd><code><?= h($data['portal_id']) ?></code></dd>
+          <dt>Portal Type</dt>
+          <dd><?= h($data['portal_type']) ?></dd>
+          <dt>Primary Email</dt>
+          <dd><?= h($u['email'] ?? '') ?></dd>
         </div>
-      <?php endif; ?>
-
-      <?php if (!empty($data['relationships'])): ?>
-        <!-- Section: Relationships table (linked contacts/accounts with role and date range) -->
-        <h2>Relationships (<?= count($data['relationships']) ?>)</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Role</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($data['relationships'] as $r): ?>
-              <tr>
-                <td><?= h($r['name'] ?? '') ?></td>
-                <td><?= h($r['relationship_type'] ?? '') ?></td>
-                <td><?= tableVal($r['start_date']) ?></td>
-                <td><?= tableVal($r['end_date']) ?></td>
-                <td><?= h($r['role'] ?? '') ?></td>
-                <td>
-                  <?php if (empty($r['end_date']) || $r['end_date'] === '0000-00-00'): ?>
-                    <span class="badge badge-active">Active</span>
-                  <?php else: ?>
-                    <span class="badge badge-ended">Ended</span>
-                  <?php endif; ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
       <?php endif; ?>
 
       <!-- Toggle: show/hide the raw JSON response payload for debugging -->
@@ -518,6 +375,32 @@ function tableVal($val)
     </div>
 
   </div>
+
+  <?php
+  // Popup handoff: when this callback is reached inside the login popup opened
+  // by index.php (popup flow), forward the token-exchange result to the opener
+  // page and close the popup. When opened directly (no opener), the normal
+  // full page above is the result.
+  $popupPayload = array(
+      'type'  => 'sinergiacrm-portal-oauth-complete',
+      'ok'    => ($data && !isset($data['error'])) ? true : false,
+      'error' => (string) $error,
+      'data'  => $data,
+  );
+  ?>
+  <script>
+    (function () {
+      if (!window.opener || window.opener.closed) return;
+      try {
+        window.opener.postMessage(<?= json_encode($popupPayload) ?>, '*');
+      } catch (e) {
+        return;
+      }
+      document.body.innerHTML = '<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#333;background:#f0f2f5"><div style="background:#fff;padding:30px 40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center">Authentication complete.<br>You can close this window.</div></div>';
+      document.title = 'Authentication complete';
+      setTimeout(function () { window.close(); }, 200);
+    })();
+  </script>
 </body>
 
 </html>

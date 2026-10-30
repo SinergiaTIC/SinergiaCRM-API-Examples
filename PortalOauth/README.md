@@ -209,8 +209,7 @@ if ($status !== 200 || !is_array($tokenResponse) || !empty($tokenResponse['error
 $_SESSION['portal_identity'] = [
     'portal_type' => $tokenResponse['portal_type'],
     'portal_id' => $tokenResponse['portal_id'],
-    'user' => $tokenResponse['user'] ?? null,
-    'relationships' => $tokenResponse['relationships'] ?? [],
+    'email' => $tokenResponse['user']['email'] ?? '',
 ];
 $_SESSION['portal_access_token'] = $tokenResponse['access_token'];
 $_SESSION['portal_refresh_token'] = $tokenResponse['refresh_token'];
@@ -221,10 +220,11 @@ imprimas tokens/secreto en logs o en la respuesta HTML.
 
 ### 3. Crear la sesión de la plataforma
 
-El intercambio incluye `portal_type` (`Contact` o `Account`), `portal_id`, `user` y
-`relationships`. Vincula la cuenta local usando **el par `portal_type` + `portal_id`**; no
-uses únicamente el email como identificador, porque puede cambiar o no ser único entre
-tipos de registro. Aplica en la plataforma sus propias reglas de alta, permisos y sesión.
+El intercambio incluye `portal_type` (`Contacts` o `Accounts`), `portal_id` y un objeto
+`user` con únicamente `id` y el email principal. Vincula la cuenta local usando **el par
+`portal_type` + `portal_id`**; no uses únicamente el email como identificador, porque puede
+cambiar o no ser único entre tipos de registro. Aplica en la plataforma sus propias reglas
+de alta, permisos y sesión.
 
 ### 4. Renovar tokens
 
@@ -340,7 +340,8 @@ y el `client_secret` no coincide, responde `400 {"error":"invalid_client"}` — 
 
 ### Paso 5 — Uso de los tokens
 
-La respuesta incluye `access_token` (Bearer, válido 1 hora), `refresh_token`, `portal_id`, `portal_type` y los datos completos del usuario y sus relaciones.
+La respuesta incluye los tokens OAuth, `portal_id`, `portal_type` (`Contacts` o `Accounts`) y
+solo `user.id` y `user.email`. No devuelve otros datos del registro ni relaciones.
 
 ---
 
@@ -396,83 +397,23 @@ GET sticPortalOAuthToken?access_token={token}
   "token_type": "Bearer",
   "refresh_token": "def...",
   "portal_id": "uuid-del-contacto-o-cuenta",
-  "portal_type": "Contact",
+  "portal_type": "Contacts",
   "user": {
     "id": "uuid",
-    "first_name": "John",
-    "last_name": "Doe",
-    "email": "john@example.com",
-    "phone_mobile": "555-0123",
-    "stic_gender_c": "male",
-    "stic_language_c": "en_us",
-    "primary_address_city": "Barcelona",
-    "...": "..."
-  },
-  "relationships": [
-    {
-      "id": "rel-uuid",
-      "name": "Project Alpha",
-      "relationship_type": "volunteer",
-      "start_date": "2024-01-01",
-      "end_date": "",
-      "role": "Coordinator",
-      "project_name": "Project Alpha",
-      "decidim_excluded": 0
-    }
-  ]
+    "email": "john@example.com"
+  }
 }
 ```
 
-### Usuario tipo Contact
+La identidad incluida en `user` se limita a:
 
 | Campo | Descripción |
 |-------|-------------|
-| `id` | UUID |
-| `first_name` | Nombre |
-| `last_name` | Apellidos |
-| `birthdate` | Fecha de nacimiento |
-| `email` | Email principal |
-| `phone_mobile` | Teléfono móvil |
-| `stic_gender_c` | Género |
-| `stic_language_c` | Idioma |
-| `stic_age_c` | Edad |
-| `stic_identification_number_c` | Número de identificación |
-| `stic_identification_type_c` | Tipo de identificación |
-| `primary_address_*` | Dirección (calle, ciudad, estado, CP, país) |
+| `id` | UUID del Contact o Account del portal; coincide con `portal_id` |
+| `email` | Email principal del registro |
 
-### Usuario tipo Account
-
-| Campo | Descripción |
-|-------|-------------|
-| `id` | UUID |
-| `name` | Nombre de la organización |
-| `phone_office` | Teléfono oficina |
-| `phone_alternate` | Teléfono alternativo |
-| `website` | Sitio web |
-| `email` | Email principal |
-| `account_type` | Tipo de organización |
-| `industry` | Sector |
-| `description` | Descripción |
-| `stic_identification_number_c` | Número de identificación fiscal |
-| `stic_identification_type_c` | Tipo de identificación |
-| `stic_language_c` | Idioma |
-| `billing_address_*` | Dirección de facturación |
-
-### Relaciones
-
-Cada relación incluye:
-
-| Campo | Descripción |
-|-------|-------------|
-| `id` | UUID de la relación |
-| `name` | Nombre de la relación |
-| `relationship_type` | Tipo de relación |
-| `start_date` | Fecha de inicio |
-| `end_date` | Fecha de fin (vacío si activa) |
-| `role` | Rol en la relación |
-| `project_name` | Nombre del proyecto |
-| `project_id` | UUID del proyecto |
-| `decidim_excluded` | Excluido de Decidim |
+En la respuesta de validación (`GET sticPortalOAuthToken?access_token=...`) también se
+devuelve `portal_type` (`Contacts` o `Accounts`) junto con `portal_id`.
 
 ### Errores (400)
 

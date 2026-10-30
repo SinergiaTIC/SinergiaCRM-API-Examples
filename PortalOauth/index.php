@@ -8,7 +8,7 @@
  * The app never sees the user's password — they log in directly on the CRM.
  *
  * On successful login the callback endpoint exchanges the authorization code
- * for access + refresh tokens, then displays the user profile and relationship data.
+ * for access + refresh tokens, then displays the portal ID, type, and primary email.
  *
  * Configuration is read from .env (preferred) or config.php (legacy fallback).
  * Copy .env.example to .env and set your values.
@@ -84,7 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_login'])) {
     $csrf = (string) ($_POST['csrf_token'] ?? '');
     if (!hash_equals($_SESSION['portal_oauth_csrf'], $csrf)) {
         http_response_code(400);
-        $saveMsg = 'Invalid request. Reload the page and try again.';
+        // Popup flow: answer with JSON so the page can show the error inline
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => 'Invalid request. Reload the page and try again.']);
+        exit;
     } else {
         $crmUrl = trim((string) ($_POST['crm_url'] ?? $config['crm_url']));
         $crmInternal = trim((string) ($_POST['crm_internal'] ?? $config['crm_internal']));
@@ -103,7 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_login'])) {
         if (!$urlIsValid($crmUrl) || !$urlIsValid($crmInternal) || !$urlIsValid($redirectUri)
             || $crmUrl === '' || $redirectUri === '') {
             http_response_code(400);
-            $saveMsg = 'Enter valid HTTP or HTTPS CRM and callback URLs.';
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'error' => 'Enter valid HTTP or HTTPS CRM and callback URLs.']);
+            exit;
         } else {
             $flowConfig = [
                 'crm_url'       => $crmUrl,
@@ -136,7 +141,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_login'])) {
                 'response_type' => 'code',
                 'state'         => $state,
             ]);
-            header('Location: ' . $loginUrl, true, 303);
+
+            // Popup flow (Google-style): the page opens this URL in a same-site
+            // popup instead of navigating away. The user logs in on the CRM,
+            // is redirected back to callback.php, and callback.php posts the
+            // token-exchange result to this page (see the message listener in
+            // the page script) and closes itself. With cached credentials
+            // (active portal session or remember-me cookie) the CRM authorizes
+            // immediately, so the popup closes without asking for a password.
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => true, 'loginUrl' => $loginUrl]);
             exit;
         }
     }
@@ -240,6 +254,34 @@ $browserDefaults = [
         .btn-clear { background: #e0e0e0; color: #555 }
         .btn-clear:hover { background: #ccc }
         .save-msg { font-size: 0.75rem; color: #2e7d32; margin-top: 6px }
+
+        /* ── Inline result of the popup login flow ── */
+        .result-success {
+            background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;
+            padding: 10px; border-radius: 5px; font-size: 0.85rem; margin-bottom: 14px
+        }
+        .result-error {
+            background: #fdecea; color: #c62828; border: 1px solid #f5c6cb;
+            padding: 10px; border-radius: 5px; font-size: 0.85rem; margin-bottom: 14px
+        }
+        #portalResult h2 { font-size: 0.95rem; margin: 14px 0 6px; color: #333; text-align: left }
+        .result-grid {
+            display: grid; grid-template-columns: auto 1fr; gap: 4px 16px;
+            font-size: 0.78rem; text-align: left; margin-bottom: 8px
+        }
+        .result-grid dt { color: #888; font-weight: 600 }
+        .result-grid dd { word-break: break-all }
+        .result-grid code { background: #eee; padding: 1px 5px; border-radius: 3px; font-size: 0.7rem }
+        #portalResult .toggle { cursor: pointer; font-size: 0.72rem; color: #1976d2; display: inline-block; margin-top: 6px }
+        #portalResult pre.raw {
+            display: block; background: #263238; color: #89ddff; padding: 10px 14px;
+            border-radius: 4px; font-size: 0.68rem; word-break: break-all; overflow-x: auto;
+            margin-top: 8px; white-space: pre-wrap; text-align: left
+        }
+        #portalResult .json-hidden { display: none }
+        .result-links { margin-top: 16px; font-size: 0.8rem }
+        .result-links a { color: #1976d2; text-decoration: none }
+        #loginMsg { font-size: 0.8rem; min-height: 18px; margin-top: 8px }
     </style>
 </head>
 
@@ -258,9 +300,10 @@ $browserDefaults = [
         <h1>SinergiaCRM Portal OAuth2</h1>
         <p class="desc">
             <strong>Authorization code flow</strong> for external apps authenticating portal users.
-            The app never sees the user's password — they log in directly on the SinergiaCRM portal.<br><br>
+            The app never sees the user's password — they log in directly on the SinergiaCRM portal,
+            in a popup on this same website.<br><br>
             After login the <code>callback.php</code> endpoint performs a server-side token exchange
-            and displays the <strong>user profile</strong> and <strong>relationship data</strong> returned by the API.
+            and the portal ID, portal type, primary email, and OAuth connection tokens appear here.
         </p>
         <form method="post" id="loginForm">
             <input type="hidden" name="start_login" value="1">
@@ -273,12 +316,17 @@ $browserDefaults = [
             <input type="hidden" name="client_secret" id="flowClientSecret" value="">
             <button type="submit" class="btn">Login with SinergiaCRM</button>
         </form>
+        <div id="loginMsg" aria-live="polite"></div>
+
+        <!-- Inline result of the popup login flow (filled by the message listener) -->
+        <div id="portalResult" hidden></div>
 
         <div class="flow-box">
             <strong>Flow:</strong><br>
-            1. Click button → redirected to CRM login page<br>
-            2. User authenticates → CRM redirects back with <code>?code=...</code><br>
-            3. Callback exchanges the code for tokens via server-side <code>curl</code>
+            1. Click button → the CRM login opens in a popup (same website, no redirect)<br>
+            2. User authenticates → the popup closes and the result appears here<br>
+            3. The code is exchanged for tokens via server-side <code>curl</code> in <code>callback.php</code><br>
+            With cached credentials the popup authorizes silently and closes by itself.
         </div>
 
         <!-- Connection settings card -->
@@ -415,7 +463,13 @@ $browserDefaults = [
                 saveMsg.textContent = 'Browser overrides cleared; using code defaults.';
             });
 
-            document.getElementById('loginForm').addEventListener('submit', () => {
+            // Popup OAuth flow (Google-style): submit via fetch, open the CRM
+            // login in a same-site popup, and render the result inline when the
+            // popup posts it back. Falls back to the classic full-page redirect
+            // when the popup is blocked.
+            document.getElementById('loginForm').addEventListener('submit', (event) => {
+                event.preventDefault();
+                const form = event.target;
                 const config = effectiveConfig();
                 document.getElementById('flowCrmUrl').value = config.crm_url || '';
                 document.getElementById('flowCrmInternal').value = config.crm_internal || '';
@@ -424,7 +478,97 @@ $browserDefaults = [
                 const hasSecretOverride = Object.prototype.hasOwnProperty.call(overrides, 'client_secret');
                 document.getElementById('flowHasClientSecretOverride').value = hasSecretOverride ? '1' : '0';
                 document.getElementById('flowClientSecret').value = hasSecretOverride ? overrides.client_secret : '';
+
+                const msg = document.getElementById('loginMsg');
+                msg.style.color = '#1976d2';
+                msg.textContent = 'Opening the SinergiaCRM login window...';
+
+                fetch(window.location.pathname, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
+                    .then((response) => response.json().then((json) => ({ ok: response.ok, json })))
+                    .then((result) => {
+                        if (!result.ok || !result.json || !result.json.ok) {
+                            msg.style.color = '#c62828';
+                            msg.textContent = (result.json && result.json.error) || 'Could not start the login flow.';
+                            return;
+                        }
+                        msg.textContent = '';
+                        const popup = window.open(
+                            result.json.loginUrl,
+                            'sinergiacrmPortalAuth',
+                            'width=520,height=680,menubar=no,toolbar=no,location=yes,resizable=yes'
+                        );
+                        if (!popup) {
+                            // Popup blocked: classic full-page redirect flow
+                            window.location.href = result.json.loginUrl;
+                        }
+                    })
+                    .catch(() => {
+                        msg.style.color = '#c62828';
+                        msg.textContent = 'Could not start the login flow.';
+                    });
             });
+
+            // The login popup posts the token-exchange result back and closes
+            // itself (see callback.php). Render it inline, exactly like the
+            // standalone callback page does.
+            window.addEventListener('message', (event) => {
+                const message = event.data;
+                if (!message || message.type !== 'sinergiacrm-portal-oauth-complete') return;
+                renderPortalResult(message);
+            });
+
+            function escapeHtml(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            }
+
+            function renderPortalResult(message) {
+                const container = document.getElementById('portalResult');
+                let html = '';
+                if (!message.ok) {
+                    html += '<div class="result-error">Login failed: ' + escapeHtml(message.error || 'unknown error') + '</div>';
+                } else {
+                    const data = message.data || {};
+                    html += '<div class="result-success">Authentication successful. The portal connection details are below.</div>';
+                    html += '<h2>Tokens</h2><div class="result-grid">';
+                    html += '<dt>Access Token</dt><dd><code>' + escapeHtml(data.access_token) + '</code></dd>';
+                    html += '<dt>Expires in</dt><dd>' + escapeHtml(data.expires_in) + ' seconds</dd>';
+                    html += '<dt>Token Type</dt><dd>' + escapeHtml(data.token_type) + '</dd>';
+                    html += '<dt>Refresh Token</dt><dd><code>' + escapeHtml(data.refresh_token) + '</code></dd>';
+                    html += '</div>';
+                    if (data.user) {
+                        html += '<h2>Portal Identity</h2><div class="result-grid">';
+                        html += '<dt>Portal ID</dt><dd><code>' + escapeHtml(data.portal_id) + '</code></dd>';
+                        html += '<dt>Portal Type</dt><dd>' + escapeHtml(data.portal_type) + '</dd>';
+                        html += '<dt>Primary Email</dt><dd>' + escapeHtml(data.user.email) + '</dd>';
+                        html += '</div>';
+                    }
+                    html += '<span class="toggle" id="resultToggle">Show raw JSON</span>';
+                }
+                html += '<div class="result-links"><a href="index.php">Start again</a></div>';
+                container.innerHTML = html;
+
+                // Raw JSON payload via textContent (no HTML parsing of the data)
+                if (message.ok) {
+                    const pre = document.createElement('pre');
+                    pre.id = 'portalResultRaw';
+                    pre.className = 'raw json-hidden';
+                    pre.textContent = JSON.stringify(message.data || {}, null, 2);
+                    container.insertBefore(pre, container.querySelector('.result-links'));
+                    const toggle = document.getElementById('resultToggle');
+                    toggle.addEventListener('click', () => {
+                        pre.classList.toggle('json-hidden');
+                        toggle.textContent = pre.classList.contains('json-hidden') ? 'Show raw JSON' : 'Hide raw JSON';
+                    });
+                }
+
+                container.hidden = false;
+                document.getElementById('loginForm').hidden = true;
+                document.getElementById('loginMsg').hidden = true;
+                const flow = document.querySelector('.flow-box');
+                if (flow) flow.hidden = true;
+            }
 
             render();
         })();
