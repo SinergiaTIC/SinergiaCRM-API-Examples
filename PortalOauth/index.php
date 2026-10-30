@@ -171,7 +171,7 @@ $browserDefaults = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>External App — SinergiaCRM Portal OAuth</title>
+    <title>App externa — Portal OAuth de SinergiaCRM</title>
     <!-- Inline styles for the landing card UI, config settings panel, and form controls -->
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0 }
@@ -294,17 +294,17 @@ $browserDefaults = [
     -->
     <div class="card">
         <nav class="page-nav" aria-label="Example navigation">
-            <a href="../index.php">← All API examples</a>
-            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+            <a href="../index.php">← Todos los ejemplos de API</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Ver documentación ↗</a>
         </nav>
-        <h1>SinergiaCRM Portal OAuth2 <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:0.65rem;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ Under development</span></h1>
+        <h1>SinergiaCRM Portal OAuth2 <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:0.65rem;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ En desarrollo</span></h1>
         <p class="desc">
-            <strong>Authorization code flow</strong> for external apps authenticating portal users.
-            The app never sees the user's password — they log in directly on the SinergiaCRM portal,
-            in a popup on this same website.<br><br>
-            After login the <code>callback.php</code> endpoint performs a server-side token exchange
-            and the portal ID, portal type, primary email, and OAuth connection tokens appear here.<br>
-            <em style="color:#e65100">This demo client is still under development; its API and documentation may change.</em>
+            <strong>Flujo authorization code</strong> de OAuth2 para <strong>aplicaciones externas</strong> que autentican usuarios del portal (Personas (Contacts) / Organizaciones (Accounts)).
+            La aplicación nunca ve la contraseña del usuario: el inicio de sesión se realiza directamente en el portal de SinergiaCRM,
+            en una ventana emergente de esta misma web.<br><br>
+            Tras el inicio de sesión, el endpoint <code>callback.php</code> realiza el intercambio de tokens en el servidor
+            y aquí aparecen el ID de portal, el tipo, el email principal y los tokens de conexión OAuth.<br>
+            <em style="color:#e65100">Este cliente de demostración aún está en desarrollo; su API y su documentación pueden cambiar.</em>
         </p>
         <form method="post" id="loginForm">
             <input type="hidden" name="start_login" value="1">
@@ -315,7 +315,7 @@ $browserDefaults = [
             <input type="hidden" name="redirect_uri" id="flowRedirectUri" value="<?= htmlspecialchars($browserDefaults['redirect_uri']) ?>">
             <input type="hidden" name="has_client_secret_override" id="flowHasClientSecretOverride" value="0">
             <input type="hidden" name="client_secret" id="flowClientSecret" value="">
-            <button type="submit" class="btn">Login with SinergiaCRM</button>
+            <button type="submit" class="btn">Iniciar sesión con SinergiaCRM</button>
         </form>
         <div id="loginMsg" aria-live="polite"></div>
 
@@ -323,19 +323,19 @@ $browserDefaults = [
         <div id="portalResult" hidden></div>
 
         <div class="flow-box">
-            <strong>Flow:</strong><br>
-            1. Click button → the CRM login opens in a popup (same website, no redirect)<br>
-            2. User authenticates → the popup closes and the result appears here<br>
-            3. The code is exchanged for tokens via server-side <code>curl</code> in <code>callback.php</code><br>
-            With cached credentials the popup authorizes silently and closes by itself.
+            <strong>Flujo:</strong><br>
+            1. Pulsa el botón → el login del CRM se abre en una ventana emergente (misma web, sin redirección)<br>
+            2. El usuario se autentica → la ventana se cierra y el resultado aparece aquí<br>
+            3. El código se intercambia por tokens mediante <code>curl</code> en el servidor (<code>callback.php</code>)<br>
+            Con credenciales recordadas, la ventana se autoriza y se cierra sin pedir la contraseña.
         </div>
 
         <!-- Connection settings card -->
         <div class="config-card">
             <div class="config-header">
                 <div class="config-title-row">
-                    <h3>Connection Settings</h3>
-                    <span class="override-badge" id="overrideBadge" hidden>browser override</span>
+                    <h3>Configuración de conexión</h3>
+                    <span class="override-badge" id="overrideBadge" hidden>configuración de este navegador</span>
                 </div>
                 <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
                     &#9881; Edit
@@ -343,52 +343,52 @@ $browserDefaults = [
             </div>
             <div class="config-grid">
                 <div class="config-row">
-                    <span class="config-label">CRM URL</span>
+                    <span class="config-label">URL del CRM</span>
                     <span class="config-value" id="displayCrmUrl"><?= htmlspecialchars($browserDefaults['crm_url']) ?></span>
                 </div>
                 <div class="config-row">
-                    <span class="config-label">Client ID</span>
+                    <span class="config-label">ID de cliente</span>
                     <span class="config-value"><code id="displayClientId"><?= htmlspecialchars($browserDefaults['client_id']) ?></code></span>
                 </div>
                 <div class="config-row">
-                    <span class="config-label">Callback URL</span>
+                    <span class="config-label">URL de callback</span>
                     <span class="config-value" id="displayRedirectUri"><?= htmlspecialchars($browserDefaults['redirect_uri']) ?></span>
                 </div>
                 <div class="config-row">
-                    <span class="config-label">Auth method</span>
+                    <span class="config-label">Método de autenticación</span>
                     <span class="config-value"><code>portal_authorization_code</code></span>
                 </div>
             </div>
-            <div class="override-note" id="overrideNote" hidden>Settings are stored only in this browser's localStorage.</div>
+            <div class="override-note" id="overrideNote" hidden>La configuración se guarda solo en el localStorage de este navegador.</div>
             <form id="settingsForm" class="settings-form">
                 <div class="field-group">
-                    <label for="crm_url">CRM URL</label>
+                    <label for="crm_url">URL del CRM</label>
                     <input type="text" name="crm_url" id="crm_url" value="<?= htmlspecialchars($config['crm_url']) ?>" placeholder="https://mycrm.example.com/sinergiacrm">
-                    <div class="field-help">Public URL that users and the browser redirect to.</div>
+                    <div class="field-help">URL pública a la que se redirige a los usuarios y desde el navegador.</div>
                 </div>
                 <div class="field-group">
-                    <label for="crm_internal">Internal URL (token exchange)</label>
+                    <label for="crm_internal">URL interna (intercambio de tokens)</label>
                     <input type="text" name="crm_internal" id="crm_internal" value="<?= htmlspecialchars($config['crm_internal'] ?? '') ?>" placeholder="Same as CRM URL if not behind proxy">
-                    <div class="field-help">Internal URL for server-to-server <code>curl</code> calls. Use Docker service name if behind a reverse proxy (e.g. <code>http://sw-webserver/sinergiacrm</code>).</div>
+                    <div class="field-help">URL interna para las llamadas <code>curl</code> de servidor a servidor. Usa el nombre del servicio de Docker si hay un proxy inverso (p. ej. <code>http://sw-webserver/sinergiacrm</code>).</div>
                 </div>
                 <div class="field-group">
-                    <label for="client_id">OAuth2 Client ID</label>
+                    <label for="client_id">ID de cliente OAuth2</label>
                     <input type="text" name="client_id" id="client_id" value="<?= htmlspecialchars($config['client_id']) ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                    <div class="field-help">Portal OAuth2 client UUID with <code>portal_authorization_code</code> grant type.</div>
+                    <div class="field-help">UUID del cliente OAuth2 de portal con grant <code>portal_authorization_code</code>.</div>
                 </div>
                 <div class="field-group">
-                    <label for="redirect_uri">OAuth Redirect URI (callback)</label>
+                    <label for="redirect_uri">URI de redirección OAuth (callback)</label>
                     <input type="text" name="redirect_uri" id="redirect_uri" value="<?= htmlspecialchars($config['redirect_uri']) ?>" placeholder="https://myapp.example.com/PortalOauth/callback.php">
-                    <div class="field-help">Defaults to this app's public URL plus <code>/callback.php</code> when unset. Must match the Redirect URL registered on the CRM OAuth2 client.</div>
+                    <div class="field-help">Si se deja vacía, se calcula con la URL pública de esta aplicación más <code>/callback.php</code>. Debe coincidir con la Redirect URL registrada en el cliente OAuth2 del CRM.</div>
                 </div>
                 <div class="field-group">
-                    <label for="client_secret">Client Secret <em>(optional)</em></label>
+                    <label for="client_secret">Client Secret <em>(opcional)</em></label>
                     <input type="password" name="client_secret" id="client_secret" value="" placeholder="Leave unchanged to use the code default" autocomplete="new-password">
-                    <div class="field-help">Optional browser-specific secret override. It is saved in this browser's localStorage and sent to the server only for this login flow.</div>
+                    <div class="field-help">Secreto opcional específico de este navegador. Se guarda en el localStorage de este navegador y solo se envía al servidor para este flujo de login.</div>
                 </div>
                 <div class="btn-row">
-                    <button type="button" id="saveSettings" class="btn-sm btn-save">Save for this browser</button>
-                    <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Revert to Code Defaults</button>
+                    <button type="button" id="saveSettings" class="btn-sm btn-save">Guardar en este navegador</button>
+                    <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Volver a los valores del código</button>
                 </div>
                 <div class="save-msg" id="saveMsg" role="status"><?= htmlspecialchars($saveMsg) ?></div>
             </form>
@@ -418,7 +418,7 @@ $browserDefaults = [
                     });
                 }
             } catch (error) {
-                saveMsg.textContent = 'Browser storage is unavailable; settings will use code defaults.';
+                saveMsg.textContent = 'El almacenamiento del navegador no está disponible; se usarán los valores del código.';
             }
 
             const effectiveConfig = () => ({ ...defaults, ...overrides });
@@ -451,9 +451,9 @@ $browserDefaults = [
                     localStorage.setItem(storageKey, JSON.stringify(next));
                     overrides = next;
                     render();
-                    saveMsg.textContent = 'Settings saved in this browser only.';
+                    saveMsg.textContent = 'Configuración guardada solo en este navegador.';
                 } catch (error) {
-                    saveMsg.textContent = 'Could not save settings in this browser.';
+                    saveMsg.textContent = 'No se pudo guardar la configuración en este navegador.';
                 }
             });
 
@@ -461,7 +461,7 @@ $browserDefaults = [
                 try { localStorage.removeItem(storageKey); } catch (error) {}
                 overrides = {};
                 render();
-                saveMsg.textContent = 'Browser overrides cleared; using code defaults.';
+                saveMsg.textContent = 'Configuración del navegador eliminada; se usan los valores del código.';
             });
 
             // Popup OAuth flow (Google-style): submit via fetch, open the CRM
@@ -482,7 +482,7 @@ $browserDefaults = [
 
                 const msg = document.getElementById('loginMsg');
                 msg.style.color = '#1976d2';
-                msg.textContent = 'Opening the SinergiaCRM login window...';
+                msg.textContent = 'Abriendo la ventana de inicio de sesión de SinergiaCRM...';
 
                 fetch(window.location.pathname, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
                     .then((response) => response.json().then((json) => ({ ok: response.ok, json })))
@@ -505,7 +505,7 @@ $browserDefaults = [
                     })
                     .catch(() => {
                         msg.style.color = '#c62828';
-                        msg.textContent = 'Could not start the login flow.';
+                        msg.textContent = 'No se pudo iniciar el flujo de inicio de sesión.';
                     });
             });
 
@@ -528,26 +528,26 @@ $browserDefaults = [
                 const container = document.getElementById('portalResult');
                 let html = '';
                 if (!message.ok) {
-                    html += '<div class="result-error">Login failed: ' + escapeHtml(message.error || 'unknown error') + '</div>';
+                    html += '<div class="result-error">Error de inicio de sesión: ' + escapeHtml(message.error || 'error desconocido') + '</div>';
                 } else {
                     const data = message.data || {};
-                    html += '<div class="result-success">Authentication successful. The portal connection details are below.</div>';
+                    html += '<div class="result-success">Autenticación correcta. Estos son los detalles de la conexión al portal.</div>';
                     html += '<h2>Tokens</h2><div class="result-grid">';
-                    html += '<dt>Access Token</dt><dd><code>' + escapeHtml(data.access_token) + '</code></dd>';
-                    html += '<dt>Expires in</dt><dd>' + escapeHtml(data.expires_in) + ' seconds</dd>';
-                    html += '<dt>Token Type</dt><dd>' + escapeHtml(data.token_type) + '</dd>';
-                    html += '<dt>Refresh Token</dt><dd><code>' + escapeHtml(data.refresh_token) + '</code></dd>';
+                    html += '<dt>Token de acceso</dt><dd><code>' + escapeHtml(data.access_token) + '</code></dd>';
+                    html += '<dt>Caduca en</dt><dd>' + escapeHtml(data.expires_in) + ' segundos</dd>';
+                    html += '<dt>Tipo de token</dt><dd>' + escapeHtml(data.token_type) + '</dd>';
+                    html += '<dt>Token de renovación</dt><dd><code>' + escapeHtml(data.refresh_token) + '</code></dd>';
                     html += '</div>';
                     if (data.user) {
-                        html += '<h2>Portal Identity</h2><div class="result-grid">';
-                        html += '<dt>Portal ID</dt><dd><code>' + escapeHtml(data.portal_id) + '</code></dd>';
-                        html += '<dt>Portal Type</dt><dd>' + escapeHtml(data.portal_type) + '</dd>';
-                        html += '<dt>Primary Email</dt><dd>' + escapeHtml(data.user.email) + '</dd>';
+                        html += '<h2>Identidad de portal</h2><div class="result-grid">';
+                        html += '<dt>ID de portal</dt><dd><code>' + escapeHtml(data.portal_id) + '</code></dd>';
+                        html += '<dt>Tipo de portal</dt><dd>' + escapeHtml(data.portal_type) + '</dd>';
+                        html += '<dt>Email principal</dt><dd>' + escapeHtml(data.user.email) + '</dd>';
                         html += '</div>';
                     }
-                    html += '<span class="toggle" id="resultToggle">Show raw JSON</span>';
+                    html += '<span class="toggle" id="resultToggle">Mostrar JSON</span>';
                 }
-                html += '<div class="result-links"><a href="index.php">Start again</a></div>';
+                html += '<div class="result-links"><a href="index.php">Empezar de nuevo</a></div>';
                 container.innerHTML = html;
 
                 // Raw JSON payload via textContent (no HTML parsing of the data)
@@ -560,7 +560,7 @@ $browserDefaults = [
                     const toggle = document.getElementById('resultToggle');
                     toggle.addEventListener('click', () => {
                         pre.classList.toggle('json-hidden');
-                        toggle.textContent = pre.classList.contains('json-hidden') ? 'Show raw JSON' : 'Hide raw JSON';
+                        toggle.textContent = pre.classList.contains('json-hidden') ? 'Mostrar JSON' : 'Ocultar JSON';
                     });
                 }
 

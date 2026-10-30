@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
       || !is_array($flow)
       || ($flow['expires_at'] ?? 0) < time()
       || !is_array($flow['config'] ?? null)) {
-    $error = 'Invalid state parameter. Possible CSRF attack or expired session.';
+    $error = 'Parámetro state no válido. Posible ataque CSRF o sesión caducada.';
   } else {
     // Consume the one-time flow settings from this browser's PHP session. No
     // per-user settings are written to a shared JSON file or database table.
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['code'])) {
     $response = curl_exec($ch);
     curl_close($ch);
     if (!$response) {
-      $error = 'Failed to connect to token endpoint.';
+      $error = 'No se pudo conectar con el endpoint de tokens.';
     } else {
       $data = json_decode($response, true);
     }
@@ -159,7 +159,7 @@ function h($s)
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OAuth Callback — SinergiaCRM</title>
+  <title>Callback OAuth — SinergiaCRM</title>
   <!-- Inline styles for the callback result page (tokens, portal identity, raw JSON) -->
   <style>
     * {
@@ -311,11 +311,11 @@ function h($s)
   <div class="card">
 
     <nav class="page-nav" aria-label="Example navigation">
-      <a href="../index.php">← All API examples</a>
-      <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+      <a href="../index.php">← Todos los ejemplos de API</a>
+      <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" target="_blank" rel="noopener">Ver documentación ↗</a>
     </nav>
 
-    <h1>OAuth Callback</h1>
+    <h1>Callback OAuth</h1>
 
     <!-- Pre-exchange error (e.g. CSRF state mismatch or connection failure) -->
     <?php if ($error): ?>
@@ -324,54 +324,54 @@ function h($s)
 
     <!-- Token exchange succeeded — display OAuth tokens and minimal portal identity -->
     <?php if ($data && !isset($data['error'])): ?>
-      <div class="msg msg-success">Authentication successful. The portal connection details are below.</div>
+      <div class="msg msg-success">Autenticación correcta. Estos son los detalles de la conexión al portal.</div>
 
       <!-- Section: OAuth token details -->
       <h2>Tokens</h2>
       <div class="grid">
-        <dt>Access Token</dt>
+        <dt>Token de acceso</dt>
         <dd><code><?= h($data['access_token']) ?></code></dd>
-        <dt>Expires in</dt>
-        <dd><?= h($data['expires_in']) ?> seconds</dd>
-        <dt>Token Type</dt>
+        <dt>Caduca en</dt>
+        <dd><?= h($data['expires_in']) ?> segundos</dd>
+        <dt>Tipo de token</dt>
         <dd><?= h($data['token_type']) ?></dd>
-        <dt>Refresh Token</dt>
+        <dt>Token de renovación</dt>
         <dd><code><?= h($data['refresh_token']) ?></code></dd>
       </div>
 
       <?php if (!empty($data['user'])): $u = $data['user']; ?>
         <!-- Section: Only the portal identity needed by the external application -->
-        <h2>Portal Identity</h2>
+        <h2>Identidad de portal</h2>
         <div class="grid">
-          <dt>Portal ID</dt>
+          <dt>ID de portal</dt>
           <dd><code><?= h($data['portal_id']) ?></code></dd>
-          <dt>Portal Type</dt>
+          <dt>Tipo de portal</dt>
           <dd><?= h($data['portal_type']) ?></dd>
-          <dt>Primary Email</dt>
+          <dt>Email principal</dt>
           <dd><?= h($u['email'] ?? '') ?></dd>
         </div>
       <?php endif; ?>
 
       <!-- Toggle: show/hide the raw JSON response payload for debugging -->
-      <span class="toggle" onclick="var el=document.getElementById('rawjson');el.classList.toggle('json-hidden');this.textContent=el.classList.contains('json-hidden')?'Show raw JSON':'Hide raw JSON'">Show raw JSON</span>
+      <span class="toggle" onclick="var el=document.getElementById('rawjson');el.classList.toggle('json-hidden');this.textContent=el.classList.contains('json-hidden')?'Mostrar JSON':'Ocultar JSON'">Mostrar JSON</span>
       <pre class="raw json-hidden" id="rawjson"><?= h(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></pre>
 
     <!-- Token exchange failed — the API returned an error payload -->
     <?php elseif ($data && isset($data['error'])): ?>
-      <div class="msg msg-error">Token exchange failed: <?= h($data['error']) ?>
+      <div class="msg msg-error">Error en el intercambio de tokens: <?= h($data['error']) ?>
         <?php if (!empty($data['message'])): ?><br><small><?= h($data['message']) ?></small><?php endif; ?>
       </div>
     <?php endif; ?>
 
     <!-- Navigation links and connected instance info bar -->
     <div class="links">
-      <a href="index.php">Try again</a>
+      <a href="index.php">Volver a intentar</a>
       <a href="<?= h(basename(__FILE__)) ?>">Reload</a>
     </div>
 
     <div class="instance-info">
-      <strong>Connected to:</strong> <?= h($config['crm_url']) ?><br>
-      <strong>Client ID:</strong> <code><?= h($config['client_id']) ?></code>
+      <strong>Conectado a:</strong> <?= h($config['crm_url']) ?><br>
+      <strong>ID de cliente:</strong> <code><?= h($config['client_id']) ?></code>
     </div>
 
   </div>
@@ -396,8 +396,8 @@ function h($s)
       } catch (e) {
         return;
       }
-      document.body.innerHTML = '<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#333;background:#f0f2f5"><div style="background:#fff;padding:30px 40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center">Authentication complete.<br>You can close this window.</div></div>';
-      document.title = 'Authentication complete';
+      document.body.innerHTML = '<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#333;background:#f0f2f5"><div style="background:#fff;padding:30px 40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center">Autenticación completada.<br>Puedes cerrar esta ventana.</div></div>';
+      document.title = 'Autenticación completada';
       setTimeout(function () { window.close(); }, 200);
     })();
   </script>

@@ -472,11 +472,11 @@ $browserDefaults = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SinergiaCRM API v4.1</title>
+    <title>Cliente API v4.1 de SinergiaCRM</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0 }
         [hidden] { display: none !important }
@@ -575,8 +575,8 @@ $browserDefaults = [
 </head>
 <body>
     <nav class="page-nav" aria-label="Example navigation">
-        <a href="../index.php">← All API examples</a>
-        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+        <a href="../index.php">← Todos los ejemplos de API</a>
+        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" target="_blank" rel="noopener">Ver documentación ↗</a>
     </nav>
     <!--
         -------------------------------------------------------------------
@@ -587,7 +587,7 @@ $browserDefaults = [
     -->
     <h1>SinergiaCRM API v4.1</h1>
     <p class="subtitle">
-        REST client using <code>v4_1_SticCustom</code> endpoint with username/password authentication.
+        Cliente REST que usa el endpoint <code>v4_1_SticCustom</code> con autenticación por usuario/contraseña.
     </p>
 
     <!--
@@ -602,8 +602,8 @@ $browserDefaults = [
         <!-- Card header with title and toggle button -->
         <div class="config-header">
             <div class="config-title-row">
-                <h2>Connection Settings</h2>
-                <span class="override-badge" id="overrideBadge" hidden>browser override</span>
+                <h2>Configuración de conexión</h2>
+                <span class="override-badge" id="overrideBadge" hidden>configuración de este navegador</span>
             </div>
             <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
                 &#9881; Edit
@@ -613,20 +613,20 @@ $browserDefaults = [
         <!-- Grid displaying the current configuration values read-only -->
         <div class="config-grid">
             <div class="config-item">
-                <span class="config-label">CRM URL</span>
+                <span class="config-label">URL del CRM</span>
                 <span class="config-value" id="displayCrmUrl"><?= htmlspecialchars($config['crm_url']) ?></span>
             </div>
             <div class="config-item">
-                <span class="config-label">API Path</span>
+                <span class="config-label">Ruta de la API</span>
                 <span class="config-value"><code id="displayApiPath"><?= htmlspecialchars($config['api_path']) ?></code></span>
             </div>
             <div class="config-item">
-                <span class="config-label">Username</span>
+                <span class="config-label">Usuario</span>
                 <span class="config-value" id="displayCrmUser"><?= htmlspecialchars($config['crm_user']) ?></span>
             </div>
         </div>
 
-        <div class="override-note" id="overrideNote" hidden>Settings are stored only in this browser's localStorage.</div>
+        <div class="override-note" id="overrideNote" hidden>La configuración se guarda solo en el localStorage de este navegador.</div>
 
         <!--
             Inline settings form (hidden by default, toggled via CSS class 'open').
@@ -634,25 +634,25 @@ $browserDefaults = [
         -->
         <form id="settingsForm" class="settings-form">
             <div class="field-group">
-                <label for="crm_url">CRM URL</label>
+                <label for="crm_url">URL del CRM</label>
                 <input type="text" name="crm_url" id="crm_url" value="<?= htmlspecialchars($config['crm_url']) ?>" placeholder="http://localhost:8000/sinergiacrm">
             </div>
             <div class="field-group">
-                <label for="api_path">API Path</label>
+                <label for="api_path">Ruta de la API</label>
                 <input type="text" name="api_path" id="api_path" value="<?= htmlspecialchars($config['api_path']) ?>" placeholder="/custom/service/v4_1_SticCustom/rest.php">
-                <div class="field-help">REST endpoint path relative to the CRM URL.</div>
+                <div class="field-help">Ruta del endpoint REST relativa a la URL del CRM.</div>
             </div>
             <div class="field-group">
-                <label for="crm_user">CRM Username</label>
+                <label for="crm_user">Usuario del CRM</label>
                 <input type="text" name="crm_user" id="crm_user" value="<?= htmlspecialchars($config['crm_user']) ?>">
             </div>
             <div class="field-group">
-                <label for="crm_pass">CRM Password</label>
-                <input type="password" name="crm_pass" id="crm_pass" value="" placeholder="<?= $hasPass ? 'Password configured — type a new one to override' : 'Enter password' ?>">
-                <div class="field-help"><?= $hasPass ? 'A password is configured in <code>.env</code>. Leave blank to keep it.' : 'Required for REST authentication.' ?></div>
+                <label for="crm_pass">Contraseña del CRM</label>
+                <input type="password" name="crm_pass" id="crm_pass" value="" placeholder="<?= $hasPass ? 'Contraseña configurada: escribe una nueva para sobrescribirla' : 'Introduce la contraseña' ?>">
+                <div class="field-help"><?= $hasPass ? 'Hay una contraseña configurada en <code>.env</code>. Déjala en blanco para conservarla.' : 'Necesaria para la autenticación REST.' ?></div>
             </div>
             <div class="field-group">
-                <label for="language">Language</label>
+                <label for="language">Idioma</label>
                 <select name="language" id="language">
                     <option value="es_ES" <?= ($config['language'] ?? '') === 'es_ES' ? 'selected' : '' ?>>Español (es_ES)</option>
                     <option value="ca_ES" <?= ($config['language'] ?? '') === 'ca_ES' ? 'selected' : '' ?>>Català (ca_ES)</option>
@@ -661,8 +661,8 @@ $browserDefaults = [
                 </select>
             </div>
             <div class="btn-row">
-                <button type="button" id="saveSettings" class="btn-sm btn-save">Save for this browser</button>
-                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Revert to .env Defaults</button>
+                <button type="button" id="saveSettings" class="btn-sm btn-save">Guardar en este navegador</button>
+                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Volver a los valores de .env</button>
             </div>
             <div class="save-msg" id="saveMsg" role="status"></div>
         </form>
@@ -691,12 +691,12 @@ $browserDefaults = [
             app_list_strings and returns the matched values.
         -->
         <div class="tool-card">
-            <h3>Dropdown List Lookup</h3>
-            <p class="desc">Look up any dropdown list by its key from the CRM's <code>app_list_strings</code>. Examples: <code>stic_contacts_relationships_types_list</code>, <code>account_type_dom</code>, <code>gender_list</code>.</p>
+            <h3>Consulta de listas desplegables</h3>
+            <p class="desc">Consulta cualquier lista desplegable por su clave en las <code>app_list_strings</code> del CRM. Ejemplos: <code>stic_contacts_relationships_types_list</code>, <code>account_type_dom</code>, <code>gender_list</code>.</p>
             <div class="input-group">
-                <input type="text" id="dropdownKey" placeholder="Dropdown list key" value="stic_contacts_relationships_types_list">
+                <input type="text" id="dropdownKey" placeholder="Clave de la lista desplegable" value="stic_contacts_relationships_types_list">
             </div>
-            <button class="btn-accent" id="btnDropdown" onclick="apiCall('getDropdownList', 'dropdownResult', { list_key: document.getElementById('dropdownKey').value.trim() })">Look Up</button>
+            <button class="btn-accent" id="btnDropdown" onclick="apiCall('getDropdownList', 'dropdownResult', { list_key: document.getElementById('dropdownKey').value.trim() })">Consultar</button>
             <div id="dropdownResult" class="result"></div>
         </div>
 
@@ -705,15 +705,15 @@ $browserDefaults = [
             Fetches a single record's fields by module + UUID.
         -->
         <div class="tool-card">
-            <h3>Get Record by ID</h3>
-            <p class="desc">Fetch a single record. The response contains all fields and their values.</p>
+            <h3>Obtener registro por ID</h3>
+            <p class="desc">Obtiene un registro. La respuesta contiene todos los campos y sus valores.</p>
             <div class="input-group">
                 <select id="entryModule">
                     <?php foreach ($toolModules as $m): ?><option value="<?= $m ?>"><?= $m ?></option><?php endforeach; ?>
                 </select>
-                <input type="text" id="entryId" placeholder="Record ID (UUID)">
+                <input type="text" id="entryId" placeholder="ID del registro (UUID)">
             </div>
-            <button class="btn-green" id="btnEntry" onclick="apiCallEntry()">Get Record</button>
+            <button class="btn-green" id="btnEntry" onclick="apiCallEntry()">Obtener registro</button>
             <div id="entryResult" class="result"></div>
         </div>
     </div>
@@ -721,19 +721,19 @@ $browserDefaults = [
     <!-- Set Relationship -->
     <div class="cards">
         <div class="tool-card">
-            <h3>Set Relationship</h3>
-            <p class="desc">Link one or more existing records to a record through a relationship link field. Example: Contacts → <code>accounts</code>.</p>
+            <h3>Vincular registros (set_relationship)</h3>
+            <p class="desc">Vincula uno o más registros existentes a un registro mediante un campo de relación. Ejemplo: Personas (Contacts) → <code>accounts</code>.</p>
             <div class="input-group">
-                <select id="setRelModule" aria-label="Base module">
+                <select id="setRelModule" aria-label="Módulo base">
                     <?php foreach ($toolModules as $m): ?><option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option><?php endforeach; ?>
                 </select>
-                <input type="text" id="setRelRecordId" placeholder="Base record ID">
+                <input type="text" id="setRelRecordId" placeholder="ID del registro base">
             </div>
             <div class="input-group">
-                <input type="text" id="setRelLinkField" placeholder="Link field (e.g. accounts)">
-                <input type="text" id="setRelRelatedIds" placeholder="Related IDs, comma-separated">
+                <input type="text" id="setRelLinkField" placeholder="Campo de relación (p. ej. accounts)">
+                <input type="text" id="setRelRelatedIds" placeholder="IDs relacionados, separados por comas">
             </div>
-            <button class="btn-green" id="btnSetRelationship" onclick="apiCallSetRelationship()">Set Relationship</button>
+            <button class="btn-green" id="btnSetRelationship" onclick="apiCallSetRelationship()">Vincular registros</button>
             <div id="setRelResult" class="result"></div>
         </div>
     </div>
@@ -749,14 +749,14 @@ $browserDefaults = [
             Retrieves field definitions (name, type, options) for a module.
         -->
         <div class="tool-card">
-            <h3>Get Module Fields</h3>
-            <p class="desc">Retrieve the field definitions (name, type, options) for a given module.</p>
+            <h3>Campos de un módulo</h3>
+            <p class="desc">Obtiene la definición de campos (nombre, tipo, opciones) de un módulo.</p>
             <div class="input-group">
                 <select id="fieldsModule">
                     <?php foreach ($toolModules as $m): ?><option value="<?= $m ?>"><?= $m ?></option><?php endforeach; ?>
                 </select>
             </div>
-            <button class="btn-accent" id="btnFields" onclick="apiCall('getModuleFields', 'fieldsResult', { module: document.getElementById('fieldsModule').value })">Get Fields</button>
+            <button class="btn-accent" id="btnFields" onclick="apiCall('getModuleFields', 'fieldsResult', { module: document.getElementById('fieldsModule').value })">Obtener campos</button>
             <div id="fieldsResult" class="result"></div>
         </div>
 
@@ -765,16 +765,16 @@ $browserDefaults = [
             Fetches related records via a relationship link, given a module and record ID.
         -->
         <div class="tool-card">
-            <h3>Get Relationships</h3>
-            <p class="desc">Fetch related records for a given module and record ID.</p>
+            <h3>Obtener relaciones</h3>
+            <p class="desc">Obtiene los registros relacionados de un módulo y ID de registro dados.</p>
             <div class="input-group">
                 <select id="relModule" style="flex:0.8">
                     <?php foreach ($toolModules as $m): ?><option value="<?= $m ?>"><?= $m ?></option><?php endforeach; ?>
                 </select>
-                <input type="text" id="relId" placeholder="Record ID">
-                <input type="text" id="relLink" placeholder="Link field" style="flex:0.8">
+                <input type="text" id="relId" placeholder="ID del registro">
+                <input type="text" id="relLink" placeholder="Campo de relación" style="flex:0.8">
             </div>
-            <button class="btn-accent" id="btnRels" onclick="apiCallRelationships()">Get Relationships</button>
+            <button class="btn-accent" id="btnRels" onclick="apiCallRelationships()">Obtener relaciones</button>
             <div id="relResult" class="result"></div>
         </div>
     </div>
@@ -791,9 +791,9 @@ $browserDefaults = [
             locale.  Useful for inspecting translated dropdown values.
         -->
         <div class="tool-card">
-            <h3>Get Language Definition</h3>
-            <p class="desc">Fetch the language strings for the configured language. Useful for getting translated dropdown values and labels.</p>
-            <button class="btn-primary" id="btnLang" onclick="apiCall('getLanguageDefinition', 'langResult')">Get Language</button>
+            <h3>Definición de idioma</h3>
+            <p class="desc">Descarga las cadenas de idioma del idioma configurado. Útil para obtener los valores traducidos de las listas desplegables y sus etiquetas.</p>
+            <button class="btn-primary" id="btnLang" onclick="apiCall('getLanguageDefinition', 'langResult')">Obtener idioma</button>
             <div id="langResult" class="result"></div>
         </div>
 
@@ -803,24 +803,24 @@ $browserDefaults = [
             existing one.  Leave the ID empty to create; provide an ID to update.
         -->
         <div class="tool-card">
-            <h3>Set Entry (Create / Update)</h3>
-            <p class="desc">Create or update a record by sending name-value pairs.</p>
+            <h3>Crear o actualizar registro (set_entry)</h3>
+            <p class="desc">Crea o actualiza un registro enviando pares campo-valor.</p>
             <div class="input-group">
                 <select id="setModule" style="flex:0.7">
-                    <option value="Contacts">Contacts</option>
-                    <option value="Accounts">Accounts</option>
+                    <option value="Contacts">Personas (Contacts)</option>
+                    <option value="Accounts">Organizaciones (Accounts)</option>
                 </select>
-                <input type="text" id="setId" placeholder="Record ID (empty = create)">
+                <input type="text" id="setId" placeholder="ID del registro (vacío = crear)">
             </div>
             <div class="input-group">
-                <input type="text" id="setField1" placeholder="Field name (e.g. last_name)">
-                <input type="text" id="setVal1" placeholder="Value">
+                <input type="text" id="setField1" placeholder="Nombre del campo (p. ej. last_name)">
+                <input type="text" id="setVal1" placeholder="Valor">
             </div>
             <div class="input-group">
                 <input type="text" id="setField2" placeholder="Field name">
-                <input type="text" id="setVal2" placeholder="Value (optional)">
+                <input type="text" id="setVal2" placeholder="Valor (opcional)">
             </div>
-            <button class="btn-green" id="btnSet" onclick="apiCallSet()">Set Entry</button>
+            <button class="btn-green" id="btnSet" onclick="apiCallSet()">Guardar registro</button>
             <div id="setResult" class="result"></div>
         </div>
     </div>
@@ -847,7 +847,7 @@ $browserDefaults = [
                 });
             }
         } catch (error) {
-            document.getElementById('saveMsg').textContent = 'Browser storage unavailable; using .env defaults.';
+            document.getElementById('saveMsg').textContent = 'El almacenamiento del navegador no está disponible; se usan los valores de .env.';
         }
 
         function renderV41Settings() {
@@ -879,9 +879,9 @@ $browserDefaults = [
                 localStorage.setItem(v41StorageKey, JSON.stringify(next));
                 v41Overrides = next;
                 renderV41Settings();
-                document.getElementById('saveMsg').textContent = 'Settings saved in this browser only.';
+                document.getElementById('saveMsg').textContent = 'Configuración guardada solo en este navegador.';
             } catch (error) {
-                document.getElementById('saveMsg').textContent = 'Could not save settings in this browser.';
+                document.getElementById('saveMsg').textContent = 'No se pudo guardar la configuración en este navegador.';
             }
         });
 
@@ -889,7 +889,7 @@ $browserDefaults = [
             try { localStorage.removeItem(v41StorageKey); } catch (error) {}
             v41Overrides = {};
             renderV41Settings();
-            document.getElementById('saveMsg').textContent = 'Browser overrides cleared; using .env defaults.';
+            document.getElementById('saveMsg').textContent = 'Configuración del navegador eliminada; se usan los valores de .env.';
         });
 
         function v41ApiFetch(url, options = {}) {
@@ -923,7 +923,7 @@ $browserDefaults = [
 
             /** Disable the button and show a loading indicator while the request is in flight */
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Authenticating and executing...</div>';
+            result.innerHTML = '<div class="loading">Autenticando y ejecutando...</div>';
 
             /** Build the POST form data payload */
             const fd = new FormData();
@@ -938,10 +938,10 @@ $browserDefaults = [
                 const data = await resp.json();
 
                 /** Render the JSON response inside a dark-themed <pre> block */
-                result.innerHTML = `<div class="summary">${action} response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+                result.innerHTML = `<div class="summary">${action} — respuesta:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
                 /** Render any network or parsing errors in a red error box */
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 /** Always re-enable the button when done */
                 btn.disabled = false;
@@ -963,11 +963,11 @@ $browserDefaults = [
             const id = document.getElementById('entryId').value.trim();
 
             /** Guard: a record ID is required */
-            if (!id) { result.innerHTML = '<div class="error">Please enter a record ID.</div>'; return; }
+            if (!id) { result.innerHTML = '<div class="error">Introduce un ID de registro.</div>'; return; }
 
             /** Disable the button and show loading state */
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Authenticating and executing...</div>';
+            result.innerHTML = '<div class="loading">Autenticando y ejecutando...</div>';
 
             const fd = new FormData();
             fd.append('api_action', 'getEntry');
@@ -977,9 +977,9 @@ $browserDefaults = [
             try {
                 const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
-                result.innerHTML = `<div class="summary">get_entry (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+                result.innerHTML = `<div class="summary">get_entry (${module}) — respuesta:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1001,11 +1001,11 @@ $browserDefaults = [
             const link = document.getElementById('relLink').value.trim();
 
             /** Guard: a record ID is required */
-            if (!id) { result.innerHTML = '<div class="error">Please enter a record ID.</div>'; return; }
+            if (!id) { result.innerHTML = '<div class="error">Introduce un ID de registro.</div>'; return; }
 
             /** Disable the button and show loading state */
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Authenticating and executing...</div>';
+            result.innerHTML = '<div class="loading">Autenticando y ejecutando...</div>';
 
             const fd = new FormData();
             fd.append('api_action', 'getRelationships');
@@ -1016,9 +1016,9 @@ $browserDefaults = [
             try {
                 const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
-                result.innerHTML = `<div class="summary">get_relationships (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+                result.innerHTML = `<div class="summary">get_relationships (${module}) — respuesta:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1037,16 +1037,16 @@ $browserDefaults = [
                 .filter(Boolean);
 
             if (!recordId || !linkField || relatedIds.length === 0) {
-                result.innerHTML = '<div class="error">Enter the base record ID, link field, and at least one related ID.</div>';
+                result.innerHTML = '<div class="error">Introduce el ID del registro base, el campo de relación y al menos un ID relacionado.</div>';
                 return;
             }
             if (relatedIds.length > 100) {
-                result.innerHTML = '<div class="error">A maximum of 100 related IDs can be linked per request.</div>';
+                result.innerHTML = '<div class="error">Se pueden vincular como máximo 100 IDs relacionados por petición.</div>';
                 return;
             }
 
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Authenticating and setting relationship...</div>';
+            result.innerHTML = '<div class="loading">Autenticando y vinculando registros...</div>';
             const fd = new FormData();
             fd.append('api_action', 'setRelationship');
             fd.append('module', module);
@@ -1057,9 +1057,9 @@ $browserDefaults = [
             try {
                 const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
-                result.innerHTML = `<div class="summary">set_relationship (${module}.${linkField}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+                result.innerHTML = `<div class="summary">set_relationship (${module}.${linkField}) — respuesta:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1096,18 +1096,18 @@ $browserDefaults = [
             if (f2) { fd.append('field_values[' + f2 + ']', v2); }
 
             /** Guard: at least one field name + value pair is required */
-            if (!f1 && !f2) { result.innerHTML = '<div class="error">Enter at least one field name and value.</div>'; return; }
+            if (!f1 && !f2) { result.innerHTML = '<div class="error">Introduce al menos un nombre de campo y su valor.</div>'; return; }
 
             /** Disable the button and show loading state */
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Authenticating and executing...</div>';
+            result.innerHTML = '<div class="loading">Autenticando y ejecutando...</div>';
 
             try {
                 const resp = await v41ApiFetch('', { method: 'POST', body: fd });
                 const data = await resp.json();
-                result.innerHTML = `<div class="summary">set_entry (${module}) response:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
+                result.innerHTML = `<div class="summary">set_entry (${module}) — respuesta:</div><pre class="json-result">${esc(JSON.stringify(data, null, 2))}</pre>`;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }

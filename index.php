@@ -7,11 +7,11 @@
  */
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SinergiaCRM — API Examples</title>
+    <title>SinergiaCRM — Ejemplos de API</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0 }
         body {
@@ -51,58 +51,59 @@
 </head>
 <body>
     <div class="card">
-        <h1>SinergiaCRM — API Examples</h1>
+        <h1>SinergiaCRM — Ejemplos de API</h1>
         <p class="subtitle">
-            Demo clients for integrating external applications with SinergiaCRM.<br>
-            Each example is self-contained and demonstrates a different integration pattern.
+            Clientes de demostración para integrar aplicaciones externas con SinergiaCRM.<br>
+            Cada ejemplo es autocontenido y muestra un patrón de integración diferente.
         </p>
 
         <div class="section">
-            <h2>Portal OAuth2 Demo <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:11px;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ Under development</span></h2>
+            <h2>Cliente API V8</h2>
             <p>
-                Full OAuth2 authorization code flow for <strong>external apps</strong> authenticating
-                portal users (Contacts / Accounts). The app never sees the user's password —
-                they log in directly on the CRM portal. Exchange an authorization code for
-                access + refresh tokens, then retrieve user profile and relationship data.<br>
-                <em style="color:#e65100">This client is still under development; its API and docs may change.</em>
+                Cliente web de la <strong>API REST V8 de SuiteCRM</strong> que usa el grant OAuth
+                <code>client_credentials</code>. Consulta personas, obtiene sus
+                <code>stic_Contacts_Relationships</code> activas con datos de los proyectos relacionados,
+                consulta los valores de las listas desplegables y explora los módulos disponibles.
             </p>
-            <a href="PortalOauth/" class="btn">Open PortalOauth Demo</a>
-            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
+            <a href="v8/" class="btn">Abrir el cliente API V8</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" class="btn btn-outline" target="_blank" rel="noopener">Ver documentación ↗</a>
         </div>
 
         <hr class="divider">
 
         <div class="section">
-            <h2>V8 API Client</h2>
+            <h2>Cliente API v4.1</h2>
             <p>
-                Browser-based <strong>SuiteCRM V8 REST API</strong> client using <code>client_credentials</code>
-                OAuth grant. Query contacts, fetch active <code>stic_Contacts_Relationships</code> with
-                related project data, inspect enum field values, and explore available modules.
+                Cliente de la <strong>API REST clásica v4.1</strong> con autenticación por usuario/contraseña.
+                Soporta <code>get_entry</code>, <code>get_relationships</code>, <code>get_module_fields</code>,
+                <code>get_available_modules</code>, <code>set_entry</code> y más, a través del endpoint
+                <code>v4_1_SticCustom</code>. Explora registros y relaciones, crea o actualiza registros y vincula registros existentes con <code>set_relationship</code>.
             </p>
-            <a href="v8/" class="btn">Open V8 API Client</a>
-            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
+            <a href="v4.1/" class="btn">Abrir el cliente v4.1</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" class="btn btn-outline" target="_blank" rel="noopener">Ver documentación ↗</a>
         </div>
 
         <hr class="divider">
 
         <div class="section">
-            <h2>API v4.1 Client</h2>
+            <h2>Demo Portal OAuth2 <span style="display:inline-block;background:#fff3e0;color:#e65100;font-size:11px;padding:2px 8px;border-radius:10px;vertical-align:middle">⚠ En desarrollo</span></h2>
             <p>
-                <strong>Legacy REST API v4.1</strong> client using username/password authentication.
-                Supports <code>get_entry</code>, <code>get_relationships</code>, <code>get_module_fields</code>,
-                <code>get_available_modules</code>, <code>set_entry</code>, and more via the
-                <code>v4_1_SticCustom</code> endpoint. Explore records and relationships, create or update records, and link existing records with <code>set_relationship</code>.
+                Flujo completo de OAuth2 *authorization code* para <strong>aplicaciones externas</strong> que autentican
+                usuarios del portal (Personas (Contacts) / Organizaciones (Accounts)). La aplicación nunca ve la contraseña del usuario:
+                este inicia sesión directamente en el portal del CRM. Intercambia un código de autorización por
+                tokens de acceso y de renovación, y obtén el perfil del usuario y sus datos de relación.<br>
+                <em style="color:#e65100">Este cliente aún está en desarrollo; su API y su documentación pueden cambiar.</em>
             </p>
-            <a href="v4.1/" class="btn">Open v4.1 Client</a>
-            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v4.1/README.md" class="btn btn-outline" target="_blank" rel="noopener">Read Docs ↗</a>
+            <a href="PortalOauth/" class="btn">Abrir la demo de PortalOauth</a>
+            <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/PortalOauth/README.md" class="btn btn-outline" target="_blank" rel="noopener">Ver documentación ↗</a>
         </div>
 
         <hr class="divider">
 
         <div class="section">
-            <h2>Configuration</h2>
+            <h2>Configuración</h2>
             <p>
-                Each demo uses <code>.env</code> for default configuration. UI overrides are saved in the current browser's <code>localStorage</code> and sent only with that browser's API requests; they are not stored in a shared server file.
+                Cada demo usa <code>.env</code> como configuración por defecto. Los cambios hechos desde la interfaz se guardan en el <code>localStorage</code> del navegador actual y se envían solo con las peticiones de ese navegador; no se almacenan en un fichero compartido del servidor.
             </p>
         </div>
     </div>

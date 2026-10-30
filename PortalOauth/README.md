@@ -2,7 +2,7 @@
 
 > ⚠️ **Este cliente aún está en desarrollo.** La API y su documentación pueden cambiar.
 
-Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del portal (Personas / Organizaciones) contra SinergiaCRM. Implementa el flujo **authorization code grant** estándar.
+Cliente OAuth2 completo para aplicaciones externas que autentican usuarios del portal (Personas (Contacts) / Organizaciones (Accounts)) contra SinergiaCRM. Implementa el flujo **authorization code grant** estándar.
 
 ## Tabla de contenidos
 
@@ -90,9 +90,9 @@ El cliente OAuth identifica **la aplicación**; cada Persona u Organización ini
 con su propia cuenta del portal. Comprueba también que los registros que deban entrar
 tienen habilitado el acceso al portal y un usuario/contraseña válido.
 
-### Preparar Personas y Organizaciones que iniciarán sesión
+### Preparar Personas (Contacts) y Organizaciones (Accounts) que iniciarán sesión
 
-Comprueba que el registro de **Personas** o **Organizaciones** tiene un email principal
+Comprueba que el registro de **Personas (Contacts)** o **Organizaciones (Accounts)** tiene un email principal
 válido. Para enviar la invitación a la aplicación:
 
 1. Abre el registro y pulsa **Portal Actions** en la vista de detalle, o selecciona uno o

@@ -537,12 +537,12 @@ if ($action) {
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SinergiaCRM API V8 Client</title>
+    <title>Cliente API V8 de SinergiaCRM</title>
     <style>
         /* ──────── Global reset & base layout ──────── */
         *,
@@ -963,21 +963,21 @@ header('Content-Type: text/html; charset=utf-8');
 
 <body>
     <nav class="page-nav" aria-label="Example navigation">
-        <a href="../index.php">← All API examples</a>
-        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" target="_blank" rel="noopener">Read Docs ↗</a>
+        <a href="../index.php">← Todos los ejemplos de API</a>
+        <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" target="_blank" rel="noopener">Ver documentación ↗</a>
     </nav>
     <!-- ──────── Page header ──────── -->
-    <h1>SinergiaCRM API V8 Client</h1>
+    <h1>Cliente API V8 de SinergiaCRM</h1>
     <p class="subtitle">
-        Browser-based V8 REST API client — explore contacts, relationships, enum values, and modules.
+        Cliente web de la API REST V8: explora personas, relaciones, valores de listas desplegables y módulos.
     </p>
 
     <!-- ──────── Connection settings card ──────── -->
     <div class="config-card">
         <div class="config-header">
             <div class="config-title-row">
-                <h2>Connection Settings</h2>
-                <span class="override-badge" id="overrideBadge" hidden>browser override</span>
+                <h2>Configuración de conexión</h2>
+                <span class="override-badge" id="overrideBadge" hidden>configuración de este navegador</span>
             </div>
             <span class="settings-toggle" onclick="document.getElementById('settingsForm').classList.toggle('open'); this.classList.toggle('active')">
                 &#9881; Edit
@@ -987,40 +987,40 @@ header('Content-Type: text/html; charset=utf-8');
             <!-- Read-only display of current connection parameters -->
             <div class="config-grid">
                 <div class="config-item">
-                    <span class="config-label">CRM URL</span>
+                    <span class="config-label">URL del CRM</span>
                     <span class="config-value" id="displayBaseUrl"><?= htmlspecialchars(SUITECRM_BASE_URL) ?></span>
                 </div>
                 <div class="config-item">
-                    <span class="config-label">Client ID</span>
+                    <span class="config-label">ID de cliente</span>
                     <span class="config-value"><code id="displayClientId"><?= htmlspecialchars(OAUTH2_CLIENT_ID) ?></code></span>
                 </div>
                 <div class="config-item">
-                    <span class="config-label">Auth method</span>
+                    <span class="config-label">Método de autenticación</span>
                     <span class="config-value"><code>client_credentials</code> OAuth2 grant</span>
                 </div>
             </div>
-            <div class="override-note" id="overrideNote" hidden>Overrides are stored only in this browser's localStorage.</div>
+            <div class="override-note" id="overrideNote" hidden>La configuración se guarda solo en el localStorage de este navegador.</div>
         </div>
         <!-- Collapsible settings edit form -->
         <form id="settingsForm" class="settings-form">
             <div class="field-group">
-                <label for="baseUrl">SuiteCRM Base URL</label>
+                <label for="baseUrl">URL base de SuiteCRM</label>
                 <input type="text" name="SUITECRM_BASE_URL" id="baseUrl" value="<?= htmlspecialchars(SUITECRM_BASE_URL) ?>" placeholder="http://localhost:8000/sinergiacrm">
-                <div class="field-help">Root URL of your SinergiaCRM instance. Example: <code>https://mycrm.example.com/sinergiacrm</code></div>
+                <div class="field-help">URL raíz de tu instancia de SinergiaCRM. Ejemplo: <code>https://mycrm.example.com/sinergiacrm</code></div>
             </div>
             <div class="field-group">
-                <label for="clientId">OAuth2 Client ID</label>
+                <label for="clientId">ID de cliente OAuth2</label>
                 <input type="text" name="OAUTH2_CLIENT_ID" id="clientId" value="<?= htmlspecialchars(OAUTH2_CLIENT_ID) ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                <div class="field-help">The OAuth2 client UUID with <code>client_credentials</code> grant type enabled.</div>
+                <div class="field-help">UUID del cliente OAuth2 con el grant <code>client_credentials</code> habilitado.</div>
             </div>
             <div class="field-group">
-                <label for="clientSecret">OAuth2 Client Secret</label>
-                <input type="password" name="OAUTH2_CLIENT_SECRET" id="clientSecret" value="" placeholder="<?= OAUTH2_CLIENT_SECRET ? 'Secret configured — type a new one to override' : 'Enter client secret' ?>">
-                <div class="field-help"><?= OAUTH2_CLIENT_SECRET ? 'A secret is configured in <code>.env</code>. Leave blank to keep it, or type a new value to override.' : 'Required for the <code>client_credentials</code> OAuth2 grant. Kept in <code>.env</code> — do not commit.' ?></div>
+                <label for="clientSecret">Secreto del cliente OAuth2</label>
+                <input type="password" name="OAUTH2_CLIENT_SECRET" id="clientSecret" value="" placeholder="<?= OAUTH2_CLIENT_SECRET ? 'Secreto configurado: escribe uno nuevo para sobrescribirlo' : 'Introduce el secreto del cliente' ?>">
+                <div class="field-help"><?= OAUTH2_CLIENT_SECRET ? 'Hay un secreto configurado en <code>.env</code>. Déjalo en blanco para conservarlo o escribe un valor nuevo para sobrescribirlo.' : 'Necesario para el grant OAuth2 <code>client_credentials</code>. Se guarda en <code>.env</code>: no lo subas al repositorio.' ?></div>
             </div>
             <div class="btn-row">
-                <button type="button" id="saveSettings" class="btn-sm btn-save">Save for this browser</button>
-                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Revert to .env Defaults</button>
+                <button type="button" id="saveSettings" class="btn-sm btn-save">Guardar en este navegador</button>
+                <button type="button" id="clearSettings" class="btn-sm btn-clear" hidden>Volver a los valores de .env</button>
             </div>
             <div class="save-msg" id="saveMsg" role="status"></div>
         </form>
@@ -1032,22 +1032,22 @@ header('Content-Type: text/html; charset=utf-8');
     <div class="cards">
         <!-- Card 1: Active Contacts Relationships lookup -->
         <div class="card">
-            <h2>Active Contacts Relationships by Contact</h2>
-            <p class="desc">Enter a contact ID to fetch all active <code>stic_Contacts_Relationships</code> with related project details.</p>
+            <h2>Relaciones activas por Persona (Contacts)</h2>
+            <p class="desc">Introduce el ID de una persona para obtener todas sus <code>stic_Contacts_Relationships</code> activas con los datos de los proyectos relacionados.</p>
             <div class="input-group">
-                <input type="text" id="relContactIdInput" placeholder="Contact ID (e.g. a830067e-5e85-11f1-b59b-b216769ad5d8)">
-                <button class="btn-primary" id="btnRelationships" onclick="searchRelationships()">Search</button>
+                <input type="text" id="relContactIdInput" placeholder="ID de persona (p. ej. a830067e-5e85-11f1-b59b-b216769ad5d8)">
+                <button class="btn-primary" id="btnRelationships" onclick="searchRelationships()">Buscar</button>
             </div>
             <div id="relResult" class="result"></div>
         </div>
 
         <!-- Card 2: Contact Details lookup -->
         <div class="card">
-            <h2>Contact Details by ID</h2>
-            <p class="desc">Enter a contact ID to fetch basic information (name, phone, email, identification, etc).</p>
+            <h2>Detalles de la Persona (Contacts) por ID</h2>
+            <p class="desc">Introduce el ID de una persona para obtener su información básica (nombre, teléfono, email, identificación, etc.).</p>
             <div class="input-group">
-                <input type="text" id="contactIdInput" placeholder="Contact ID (e.g. 0000088f-0c84-56ae-8561-6a0cd328fd97)">
-                <button class="btn-secondary" id="btnContact" onclick="searchContact()">Search</button>
+                <input type="text" id="contactIdInput" placeholder="ID de persona (p. ej. 0000088f-0c84-56ae-8561-6a0cd328fd97)">
+                <button class="btn-secondary" id="btnContact" onclick="searchContact()">Buscar</button>
             </div>
             <div id="contactResult" class="result"></div>
         </div>
@@ -1057,20 +1057,20 @@ header('Content-Type: text/html; charset=utf-8');
     <div class="cards-bottom">
         <!-- Card 3: Dropdown list value lookup -->
         <div class="card">
-            <h2>Dropdown List Values</h2>
-            <p class="desc">Look up any dropdown list by its key (e.g. <code>stic_contacts_relationships_types_list</code>, <code>account_type_dom</code>, <code>gender_list</code>). Enter a list key to see all its values.</p>
+            <h2>Valores de listas desplegables</h2>
+            <p class="desc">Consulta cualquier lista desplegable por su clave (p. ej. <code>stic_contacts_relationships_types_list</code>, <code>account_type_dom</code>, <code>gender_list</code>). Introduce una clave para ver todos sus valores.</p>
             <div class="input-group">
-                <input type="text" id="dropdownKey" placeholder="Dropdown list key" value="stic_contacts_relationships_types_list">
-                <button class="btn-accent" id="btnDropdown" onclick="fetchDropdown()">Look Up</button>
+                <input type="text" id="dropdownKey" placeholder="Clave de la lista desplegable" value="stic_contacts_relationships_types_list">
+                <button class="btn-accent" id="btnDropdown" onclick="fetchDropdown()">Consultar</button>
             </div>
             <div id="dropdownResult" class="result"></div>
         </div>
 
         <!-- Card 4: Available modules list -->
         <div class="card">
-            <h2>Available Modules</h2>
-            <p class="desc">Fetch all available modules from <code>/Api/V8/meta/modules</code> with labels and ACL permissions.</p>
-            <button class="btn-purple" id="btnModules" onclick="fetchModules()">Fetch Modules</button>
+            <h2>Módulos disponibles</h2>
+            <p class="desc">Obtiene todos los módulos disponibles de <code>/Api/V8/meta/modules</code> con sus etiquetas y permisos ACL.</p>
+            <button class="btn-purple" id="btnModules" onclick="fetchModules()">Obtener módulos</button>
             <div id="moduleResult" class="result"></div>
         </div>
     </div>
@@ -1088,7 +1088,7 @@ header('Content-Type: text/html; charset=utf-8');
                 });
             }
         } catch (error) {
-            document.getElementById('saveMsg').textContent = 'Browser storage is unavailable; using .env defaults.';
+            document.getElementById('saveMsg').textContent = 'El almacenamiento del navegador no está disponible; se usan los valores de .env.';
         }
 
         function renderConnectionSettings() {
@@ -1116,9 +1116,9 @@ header('Content-Type: text/html; charset=utf-8');
                 localStorage.setItem(configStorageKey, JSON.stringify(next));
                 configOverrides = next;
                 renderConnectionSettings();
-                document.getElementById('saveMsg').textContent = 'Settings saved in this browser only.';
+                document.getElementById('saveMsg').textContent = 'Configuración guardada solo en este navegador.';
             } catch (error) {
-                document.getElementById('saveMsg').textContent = 'Could not save settings in this browser.';
+                document.getElementById('saveMsg').textContent = 'No se pudo guardar la configuración en este navegador.';
             }
         });
 
@@ -1126,7 +1126,7 @@ header('Content-Type: text/html; charset=utf-8');
             try { localStorage.removeItem(configStorageKey); } catch (error) {}
             configOverrides = {};
             renderConnectionSettings();
-            document.getElementById('saveMsg').textContent = 'Browser overrides cleared; using .env defaults.';
+            document.getElementById('saveMsg').textContent = 'Configuración del navegador eliminada; se usan los valores de .env.';
         });
 
         /** Attach browser-specific settings to this API request only. */
@@ -1149,32 +1149,32 @@ header('Content-Type: text/html; charset=utf-8');
             const btn = document.getElementById('btnRelationships');
             const result = document.getElementById('relResult');
             if (!contactId) {
-                result.innerHTML = '<div class="error">Please enter a contact ID.</div>';
+                result.innerHTML = '<div class="error">Introduce un ID de persona.</div>';
                 return;
             }
 
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
+            result.innerHTML = '<div class="loading">Cargando...</div>';
 
             try {
                 const resp = await apiFetch(`?action=getRelationships&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
                 if (!data.success) {
-                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Error desconocido')}</div>`;
                     return;
                 }
                 if (!data.data.length) {
-                    result.innerHTML = '<div class="summary">No active relationships found for this contact.</div>';
+                    result.innerHTML = '<div class="summary">No hay relaciones activas para esta persona.</div>';
                     return;
                 }
 
-                let html = `<div class="summary">Found ${data.count} active relationship(s)</div>`;
+                let html = `<div class="summary">${data.count} relación(es) activa(s) encontrada(s)</div>`;
                 data.data.forEach(rel => {
                     html += renderRel(rel);
                 });
                 result.innerHTML = html;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1190,18 +1190,18 @@ header('Content-Type: text/html; charset=utf-8');
             const btn = document.getElementById('btnContact');
             const result = document.getElementById('contactResult');
             if (!contactId) {
-                result.innerHTML = '<div class="error">Please enter a contact ID.</div>';
+                result.innerHTML = '<div class="error">Introduce un ID de persona.</div>';
                 return;
             }
 
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
+            result.innerHTML = '<div class="loading">Cargando...</div>';
 
             try {
                 const resp = await apiFetch(`?action=getContact&contact_id=${encodeURIComponent(contactId)}`);
                 const data = await resp.json();
                 if (!data.success) {
-                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Error desconocido')}</div>`;
                     return;
                 }
 
@@ -1210,36 +1210,36 @@ header('Content-Type: text/html; charset=utf-8');
                 html += `<h3>${esc(c.full_name || c.first_name + ' ' + c.last_name)}</h3>`;
                 html += '<div class="info-grid">';
                 html += row('ID', c.id);
-                html += row('First Name', c.first_name);
-                html += row('Last Name', c.last_name);
-                html += row('Birthdate', c.birthdate);
-                html += row('Title', c.title);
-                html += row('Department', c.department);
-                html += row('Mobile Phone', c.phone_mobile);
-                html += row('Home Phone', c.phone_home);
-                html += row('Work Phone', c.phone_work);
-                html += row('Other Phone', c.phone_other);
+                html += row('Nombre', c.first_name);
+                html += row('Apellidos', c.last_name);
+                html += row('Fecha de nacimiento', c.birthdate);
+                html += row('Cargo', c.title);
+                html += row('Departamento', c.department);
+                html += row('Móvil', c.phone_mobile);
+                html += row('Teléfono (casa)', c.phone_home);
+                html += row('Teléfono (trabajo)', c.phone_work);
+                html += row('Otro teléfono', c.phone_other);
                 html += row('Fax', c.phone_fax);
-                html += row('Email (primary)', c.email1);
-                html += row('Email (secondary)', c.email2);
-                html += row('ID Number', c.stic_identification_number_c);
-                html += row('ID Type', c.stic_identification_type_c);
-                html += row('Gender', c.stic_gender_c);
-                html += row('Language', c.stic_language_c);
-                html += row('Employment', c.stic_employment_status_c);
-                html += row('Acq. Channel', c.stic_acquisition_channel_c);
-                html += row('Address', c.primary_address_street);
-                html += row('City', c.primary_address_city);
-                html += row('State', c.primary_address_state);
-                html += row('Postal Code', c.primary_address_postalcode);
-                html += row('Country', c.primary_address_country);
-                html += row('Date Created', c.date_entered);
-                html += row('Date Modified', c.date_modified);
-                html += row('Description', c.description);
+                html += row('Email (principal)', c.email1);
+                html += row('Email (secundario)', c.email2);
+                html += row('Nº de identificación', c.stic_identification_number_c);
+                html += row('Tipo de identificación', c.stic_identification_type_c);
+                html += row('Género', c.stic_gender_c);
+                html += row('Idioma', c.stic_language_c);
+                html += row('Situación laboral', c.stic_employment_status_c);
+                html += row('Canal de captación', c.stic_acquisition_channel_c);
+                html += row('Dirección', c.primary_address_street);
+                html += row('Población', c.primary_address_city);
+                html += row('Provincia', c.primary_address_state);
+                html += row('Código postal', c.primary_address_postalcode);
+                html += row('País', c.primary_address_country);
+                html += row('Fecha de creación', c.date_entered);
+                html += row('Fecha de modificación', c.date_modified);
+                html += row('Descripción', c.description);
                 html += '</div></div>';
                 result.innerHTML = html;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1258,28 +1258,28 @@ header('Content-Type: text/html; charset=utf-8');
             const result = document.getElementById('enumResult');
 
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
+            result.innerHTML = '<div class="loading">Cargando...</div>';
 
             try {
                 const resp = await apiFetch('?action=getRelationshipTypes');
                 const data = await resp.json();
                 if (!data.success) {
-                    result.innerHTML = `<div class="error">${esc(data.error || 'Unknown error')}</div>`;
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Error desconocido')}</div>`;
                     return;
                 }
 
-                let html = '<div class="summary">Available <code>relationship_type</code> enum values:</div>';
+                let html = '<div class="summary">Valores disponibles del enum <code>relationship_type</code>:</div>';
                 html += '<ul class="enum-list">';
                 let count = 0;
                 for (const [key, label] of Object.entries(data.data)) {
-                    html += `<li class="enum-item"><span class="enum-key">${esc(key || '(empty)')}</span><span class="enum-value">${esc(label)}</span></li>`;
+                    html += `<li class="enum-item"><span class="enum-key">${esc(key || '(vacío)')}</span><span class="enum-value">${esc(label)}</span></li>`;
                     count++;
                 }
                 html += '</ul>';
-                html += `<div class="summary" style="margin-top:0.5rem">${count} enum item(s) total</div>`;
+                html += `<div class="summary" style="margin-top:0.5rem">${count} valores del enum en total</div>`;
                 result.innerHTML = html;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1295,22 +1295,22 @@ header('Content-Type: text/html; charset=utf-8');
             const result = document.getElementById('moduleResult');
 
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Loading...</div>';
+            result.innerHTML = '<div class="loading">Cargando...</div>';
 
             try {
                 const resp = await apiFetch('?action=getModules');
                 const data = await resp.json();
                 const modules = data.data?.attributes;
                 if (!modules) {
-                    result.innerHTML = '<div class="error">No modules returned</div>';
+                    result.innerHTML = '<div class="error">No se recibieron módulos</div>';
                     return;
                 }
 
                 const entries = Object.entries(modules);
-                let html = `<div class="summary">${entries.length} modules available</div>`;
-                html += '<div class="search-box"><input type="text" id="moduleFilter" placeholder="Filter modules..." oninput="filterModuleTable()"></div>';
+                let html = `<div class="summary">${entries.length} módulos disponibles</div>`;
+                html += '<div class="search-box"><input type="text" id="moduleFilter" placeholder="Filtrar módulos..." oninput="filterModuleTable()"></div>';
                 html += '<div class="module-scroll"><table class="module-table" id="moduleTable">';
-                html += '<thead><tr><th>Module</th><th>Label</th><th>ACL</th></tr></thead><tbody>';
+                html += '<thead><tr><th>Módulo</th><th>Etiqueta</th><th>ACL</th></tr></thead><tbody>';
                 for (const [key, val] of entries) {
                     const label = val.label || '';
                     const access = val.access || [];
@@ -1319,7 +1319,7 @@ header('Content-Type: text/html; charset=utf-8');
                 html += '</tbody></table></div>';
                 result.innerHTML = html;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1334,9 +1334,9 @@ header('Content-Type: text/html; charset=utf-8');
             const key = document.getElementById('dropdownKey').value.trim();
             const btn = document.getElementById('btnDropdown');
             const result = document.getElementById('dropdownResult');
-            if (!key) { result.innerHTML = '<div class="error">Enter a dropdown list key.</div>'; return; }
+            if (!key) { result.innerHTML = '<div class="error">Introduce la clave de una lista desplegable.</div>'; return; }
             btn.disabled = true;
-            result.innerHTML = '<div class="loading">Looking up...</div>';
+            result.innerHTML = '<div class="loading">Consultando...</div>';
             try {
                 const resp = await apiFetch(`?action=getDropdown&list_key=${encodeURIComponent(key)}`);
                 const data = await resp.json();
@@ -1344,18 +1344,18 @@ header('Content-Type: text/html; charset=utf-8');
                     result.innerHTML = `<div class="error">${esc(data.error)}</div>`;
                     return;
                 }
-                let html = `<div class="summary">List <code>${esc(data.list_key)}</code> (module <code>${esc(data.module)}</code>, field <code>${esc(data.field)}</code>)</div>`;
+                let html = `<div class="summary">Lista <code>${esc(data.list_key)}</code> (módulo <code>${esc(data.module)}</code>, campo <code>${esc(data.field)}</code>)</div>`;
                 html += '<ul class="enum-list">';
                 let count = 0;
                 for (const [k, v] of Object.entries(data.data || {})) {
-                    html += `<li class="enum-item"><span class="enum-key">${esc(k || '(empty)')}</span><span class="enum-value">${esc(v)}</span></li>`;
+                    html += `<li class="enum-item"><span class="enum-key">${esc(k || '(vacío)')}</span><span class="enum-value">${esc(v)}</span></li>`;
                     count++;
                 }
                 html += '</ul>';
-                html += `<div class="summary" style="margin-top:0.5rem">${count} item(s)</div>`;
+                html += `<div class="summary" style="margin-top:0.5rem">${count} valores</div>`;
                 result.innerHTML = html;
             } catch (e) {
-                result.innerHTML = `<div class="error">Request failed: ${esc(e.message)}</div>`;
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
             }
@@ -1385,30 +1385,30 @@ header('Content-Type: text/html; charset=utf-8');
          */
         function renderRel(rel) {
             let html = '<div class="rel-card">';
-            html += `<div class="rel-header"><span class="rel-name">${esc(rel.name || '(unnamed)')}</span>`;
-            html += '<span class="badge badge-active">Active</span>';
+            html += `<div class="rel-header"><span class="rel-name">${esc(rel.name || '(sin nombre)')}</span>`;
+            html += '<span class="badge badge-active">Activa</span>';
             if (rel.relationship_type) html += ` <span class="badge badge-type">${esc(rel.relationship_type)}</span>`;
             html += '</div><div class="rel-detail">';
             html += `<div class="k">ID</div><div>${esc(rel.id)}</div>`;
-            html += `<div class="k">Contact</div><div>${esc(rel.contact_name)} (${esc(rel.contact_id)})</div>`;
-            html += `<div class="k">Start Date</div><div>${esc(rel.start_date || '—')}</div>`;
-            html += `<div class="k">End Date</div><div>${esc(rel.end_date || '—')}</div>`;
-            html += `<div class="k">Role</div><div>${esc(rel.role || '—')}</div>`;
-            html += `<div class="k">End Reason</div><div>${esc(rel.end_reason || '—')}</div>`;
-            html += `<div class="k">Other End Reasons</div><div>${esc(rel.other_end_reasons || '—')}</div>`;
+            html += `<div class="k">Persona (Contacts)</div><div>${esc(rel.contact_name)} (${esc(rel.contact_id)})</div>`;
+            html += `<div class="k">Fecha de inicio</div><div>${esc(rel.start_date || '—')}</div>`;
+            html += `<div class="k">Fecha de fin</div><div>${esc(rel.end_date || '—')}</div>`;
+            html += `<div class="k">Rol</div><div>${esc(rel.role || '—')}</div>`;
+            html += `<div class="k">Motivo de fin</div><div>${esc(rel.end_reason || '—')}</div>`;
+            html += `<div class="k">Otros motivos de fin</div><div>${esc(rel.other_end_reasons || '—')}</div>`;
             html += '</div>';
 
             /** Render nested project details if available */
             if (rel.project) {
                 const p = rel.project;
-                html += '<div class="project-section"><h4>Related Project</h4><div class="rel-detail">';
-                html += `<div class="k">Name</div><div>${esc(p.name || '—')}</div>`;
-                html += `<div class="k">Status</div><div>${esc(p.status || '—')}</div>`;
-                html += `<div class="k">Priority</div><div>${esc(p.priority || '—')}</div>`;
-                html += `<div class="k">Est. Start</div><div>${esc(p.estimated_start_date || '—')}</div>`;
-                html += `<div class="k">Est. End</div><div>${esc(p.estimated_end_date || '—')}</div>`;
-                html += `<div class="k">Location</div><div>${esc(p.stic_location_c || '—')}</div>`;
-                html += `<div class="k">Description</div><div>${esc(p.description || '—')}</div>`;
+                html += '<div class="project-section"><h4>Proyecto relacionado</h4><div class="rel-detail">';
+                html += `<div class="k">Nombre</div><div>${esc(p.name || '—')}</div>`;
+                html += `<div class="k">Estado</div><div>${esc(p.status || '—')}</div>`;
+                html += `<div class="k">Prioridad</div><div>${esc(p.priority || '—')}</div>`;
+                html += `<div class="k">Inicio estimado</div><div>${esc(p.estimated_start_date || '—')}</div>`;
+                html += `<div class="k">Fin estimado</div><div>${esc(p.estimated_end_date || '—')}</div>`;
+                html += `<div class="k">Lugar</div><div>${esc(p.stic_location_c || '—')}</div>`;
+                html += `<div class="k">Descripción</div><div>${esc(p.description || '—')}</div>`;
                 html += '</div></div>';
             }
             html += '</div>';
