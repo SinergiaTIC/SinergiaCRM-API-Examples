@@ -99,6 +99,14 @@ Lista todos los módulos disponibles en la API con sus etiquetas traducidas y pe
 
 Incluye filtro de búsqueda en tiempo real y tabla con desplazamiento.
 
+### Registrations by Event (Inscripciones de un Evento)
+
+Dado el ID de un evento (`stic_Events`), obtiene todas sus inscripciones (`stic_Registrations`) a través del enlace `stic_registrations_stic_events`, con paginación completa. Para cada inscripción se incluyen sus campos core del CRM: `name`, `status`, `participation_type`, `registration_date`, `attendance_percentage`, `date_modified` y, además, el **UUID de la Persona relacionada** (`contact_id`), leído del enlace `stic_registrations_contacts`. No se devuelven campos custom específicos de la instancia.
+
+**Endpoint:** `GET /Api/V8/module/stic_Events/{eventId}/relationships/stic_registrations_stic_events`
+
+**Parámetros del endpoint:** exclusivamente `filter`, `id`, `linkFieldName`, `moduleName`, `page[número]`, `page[size]`, `sort` y `sourceBean`. Validado en la práctica: **no se admite `fields[stic_Registrations]=...`** (sparse fieldsets) en el endpoint `relationships`; la API devuelve siempre todos los atributos y la selección de campos se hace en el cliente. El UUID de la persona llega inline en el atributo `stic_registrations_contactscontacts_ida`, por lo que no hacen falta llamadas adicionales por inscripción.
+
 ---
 
 ## Endpoints de la API
@@ -193,6 +201,7 @@ El archivo `index.php` funciona en dos modos:
 | `apiGet(endpoint, token, params)` | Ejecuta petición GET autenticada a la API V8 |
 | `fetchRelationships(contactId)` | Pagina y enriquece relaciones con datos de proyecto |
 | `fetchContact(contactId)` | Obtiene datos completos de persona |
+| `fetchEventRegistrations(eventId, linkName)` | Obtiene todas las inscripciones de un evento con su persona relacionada |
 | `fetchRelationshipTypes()` | Obtiene valores enum de tipo de relación |
 | `fetchModules()` | Obtiene lista de módulos disponibles |
 

@@ -12,6 +12,7 @@ Cliente web para la API REST V8 de SuiteCRM usando el grant `client_credentials`
 - **Funciones:**
   - Buscar relaciones activas por persona (con datos de proyecto)
   - Obtener detalles de persona por ID
+  - Consultar inscripciones de un evento (relación `stic_registrations_stic_events`, con la persona relacionada de cada inscripción)
   - Buscar valores de cualquier lista desplegable por su clave
   - Listar módulos disponibles con ACLs
 - **Configuración:** `.env` (copia `.env.example`)
