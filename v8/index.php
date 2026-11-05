@@ -382,6 +382,99 @@ function fetchContact(string $contactId): array
 }
 
 /**
+ * Fetch registrations (stic_Registrations) related to an event (stic_Events).
+ *
+ * Uses the relationship endpoint
+ *   GET /Api/V8/module/stic_Events/{eventId}/relationships/{linkName}
+ * with explicit page[number]/page[size] pagination so callers never assume the
+ * first page holds all results (meta.total-pages drives the loop).
+ *
+ * IMPORTANT (verified against a live instance): the relationships endpoint does
+ * NOT accept sparse fieldsets (`fields[stic_Registrations]=...`). Its allowed
+ * options are only: filter, id, linkFieldName, moduleName, page, sort,
+ * sourceBean. It always returns the FULL attributes of each related record, so
+ * the relevant subset of fields is mapped below.
+ *
+ * Only core SinergiaCRM fields of stic_Registrations are returned (name,
+ * status, participation_type, dates, ...) plus the related person — no
+ * instance-specific custom fields.
+ *
+ * @param string $eventId  UUID of the stic_Events record.
+ * @param string $linkName Internal link name from the vardefs. Default:
+ *                         `stic_registrations_stic_events` (the link used by
+ *                         the stic_Events subpanel). Can be overridden to
+ *                         verify alternative link names.
+ * @param int    $pageSize Page size used for each API request.
+ * @return array           Structured result with `success`, `event`, `count`
+ *                         and `data` (one entry per registration).
+ */
+function fetchEventRegistrations(string $eventId, string $linkName = 'stic_registrations_stic_events', int $pageSize = 100): array
+{
+    $token = getAccessToken();
+
+    /** Validate the event exists and capture its display data */
+    try {
+        $eventData = apiGet("/Api/V8/module/stic_Events/$eventId", $token);
+        $eventAttrs = $eventData['data']['attributes'] ?? [];
+        $event = [
+            'id' => $eventData['data']['id'] ?? $eventId,
+            'name' => $eventAttrs['name'] ?? '',
+            'status' => $eventAttrs['status'] ?? '',
+            'start_date' => $eventAttrs['start_date'] ?? '',
+        ];
+    } catch (RuntimeException $e) {
+        return ['success' => false, 'error' => 'No se pudo acceder al evento: ' . $e->getMessage()];
+    }
+
+    /** Fetch every page returned by the relationship endpoint */
+    $page = 1;
+    $registrations = [];
+    $totalRecords = 0;
+    while (true) {
+        $data = apiGet("/Api/V8/module/stic_Events/$eventId/relationships/$linkName", $token, [
+            'page[number]' => $page,
+            'page[size]' => $pageSize,
+        ]);
+        $items = $data['data'] ?? [];
+        if (empty($items)) {
+            break;
+        }
+
+        foreach ($items as $rel) {
+            $attrs = $rel['attributes'] ?? [];
+            $registrations[] = [
+                'id' => $rel['id'],
+                'name' => $attrs['name'] ?? '',
+                'status' => $attrs['status'] ?? '',
+                'participation_type' => $attrs['participation_type'] ?? '',
+                'attendance_percentage' => $attrs['attendance_percentage'] ?? '',
+                'registration_date' => $attrs['registration_date'] ?? '',
+                'date_modified' => $attrs['date_modified'] ?? '',
+                /** UUID de la Persona relacionada (enlace stic_registrations_contacts) */
+                'contact_id' => $attrs['stic_registrations_contactscontacts_ida'] ?? '',
+                'contact_name' => $attrs['stic_registrations_contacts_name'] ?? '',
+            ];
+        }
+
+        $totalRecords = $data['meta']['total-records'] ?? count($registrations);
+        $totalPages = $data['meta']['total-pages'] ?? 1;
+        if ($page >= $totalPages) {
+            break;
+        }
+        $page++;
+    }
+
+    return [
+        'success' => true,
+        'event' => $event,
+        'link_name' => $linkName,
+        'count' => count($registrations),
+        'total_records' => $totalRecords,
+        'data' => $registrations,
+    ];
+}
+
+/**
  * ──────── Router ────────
  *
  * The `?action=` parameter determines whether this script acts as an API
@@ -391,6 +484,7 @@ function fetchContact(string $contactId): array
  * Supported actions:
  *   - getRelationships     (requires contact_id)
  *   - getContact           (requires contact_id)
+ *   - getEventRegistrations (requires event_id; optional link_name)
  *   - getRelationshipTypes
  *   - getModules
  *   - getDropdown          (requires list_key)
@@ -417,6 +511,12 @@ if ($action) {
         /** ---- getContact: fetch full contact details by ID ---- */
         elseif ($action === 'getContact' && !empty($_GET['contact_id'])) {
             echo json_encode(fetchContact($_GET['contact_id']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+
+        /** ---- getEventRegistrations: fetch registrations related to an event ---- */
+        elseif ($action === 'getEventRegistrations' && !empty($_GET['event_id'])) {
+            $linkName = $_GET['link_name'] ?? 'stic_registrations_stic_events';
+            echo json_encode(fetchEventRegistrations($_GET['event_id'], $linkName), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         }
 
         /** ---- getRelationshipTypes: retrieve relationship_type enum values ---- */
@@ -526,11 +626,12 @@ if ($action) {
  * No `action` parameter was provided, so we render the interactive
  * browser client. The page includes:
  *   - A connection settings card (showing current config, with inline edit)
- *   - Four tool cards:
+ *   - Five tool cards:
  *       1. Active Contacts Relationships by Contact
  *       2. Contact Details by ID
  *       3. Dropdown List Values
  *       4. Available Modules
+ *       5. Registrations by Event
  *   - Inline JavaScript that calls the API endpoints above via fetch().
  */
 
@@ -1075,6 +1176,20 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
     </div>
 
+    <!-- ──────── Tool cards: event registrations row ──────── -->
+    <div class="cards" style="margin-top:1.5rem">
+        <!-- Card 5: Registrations by Event -->
+        <div class="card">
+            <h2>Inscripciones de un Evento (stic_Events)</h2>
+            <p class="desc">Introduce el ID de un evento para obtener todas sus inscripciones (<code>stic_Registrations</code>) a través de la relación <code>stic_registrations_stic_events</code>, con paginación completa. Para cada inscripción devuelve sus campos principales (nombre, estado, tipo de participación, fechas) y la Persona relacionada (UUID leído del enlace <code>stic_registrations_contacts</code>).</p>
+            <div class="input-group">
+                <input type="text" id="eventIdInput" placeholder="ID de evento (p. ej. 00000c43-236e-7449-c464-6ae066887ea2)">
+                <button class="btn-primary" id="btnEventRegs" onclick="searchEventRegistrations()">Buscar</button>
+            </div>
+            <div id="eventRegsResult" class="result"></div>
+        </div>
+    </div>
+
     <script>
         const configStorageKey = 'sinergiacrm.apiV8.configOverrides.v1';
         const configDefaults = JSON.parse(document.getElementById('apiClientDefaults').textContent);
@@ -1237,6 +1352,70 @@ header('Content-Type: text/html; charset=utf-8');
                 html += row('Fecha de modificación', c.date_modified);
                 html += row('Descripción', c.description);
                 html += '</div></div>';
+                result.innerHTML = html;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        /**
+         * Fetch and display all registrations (stic_Registrations) related to
+         * an event (stic_Events) via the `stic_registrations_stic_events` link.
+         * Calls the `?action=getEventRegistrations` endpoint.
+         *
+         * Correction over the original spec example: the relationships endpoint
+         * does NOT accept `fields[stic_Registrations]=...` (its allowed params
+         * are filter, id, linkFieldName, moduleName, page, sort, sourceBean).
+         * It returns the full attributes of each registration and field
+         * selection happens here, keeping only core CRM fields. Pagination
+         * (page[number]/page[size]) is handled server-side via
+         * meta.total-pages. The related person's UUID is read inline from
+         * `stic_registrations_contactscontacts_ida` (link
+         * `stic_registrations_contacts`) — no extra request per registration.
+         */
+        async function searchEventRegistrations() {
+            const eventId = document.getElementById('eventIdInput').value.trim();
+            const btn = document.getElementById('btnEventRegs');
+            const result = document.getElementById('eventRegsResult');
+            if (!eventId) {
+                result.innerHTML = '<div class="error">Introduce un ID de evento.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Cargando...</div>';
+
+            try {
+                const resp = await apiFetch(`?action=getEventRegistrations&event_id=${encodeURIComponent(eventId)}`);
+                const data = await resp.json();
+                if (!data.success) {
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Error desconocido')}</div>`;
+                    return;
+                }
+                if (!data.data.length) {
+                    result.innerHTML = `<div class="summary">El evento "${esc(data.event?.name || eventId)}" no tiene inscripciones (suma total: ${esc(String(data.total_records ?? 0))}).</div>`;
+                    return;
+                }
+
+                const eventLabel = data.event?.name || eventId;
+                let html = `<div class="summary">${data.count} inscripción(es) para "${esc(eventLabel)}" — total en la relación: ${esc(String(data.total_records))} (relación: <code>${esc(data.link_name)}</code>)</div>`;
+
+                data.data.forEach(reg => {
+                    html += '<div class="info-card">';
+                    html += `<h3>${esc(reg.name || '(sin nombre)')}</h3>`;
+                    html += '<div class="info-grid">';
+                    html += row('ID Inscripción', reg.id);
+                    html += row('Estado', reg.status);
+                    html += row('Tipo de participación', reg.participation_type);
+                    html += row('Fecha de inscripción', reg.registration_date);
+                    html += row('% de asistencia', reg.attendance_percentage);
+                    html += row('Fecha de modificación', reg.date_modified);
+                    html += row('Persona (Contacts)', reg.contact_name);
+                    html += row('ID Persona (UUID)', reg.contact_id);
+                    html += '</div></div>';
+                });
                 result.innerHTML = html;
             } catch (e) {
                 result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
