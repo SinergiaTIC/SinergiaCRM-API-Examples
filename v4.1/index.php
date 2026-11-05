@@ -677,7 +677,7 @@ $browserDefaults = [
         The module list is shared across multiple GET / read-oriented
         tool cards so users can switch between common modules.
     -->
-    <?php $toolModules = ['Contacts', 'Accounts', 'Project', 'stic_Contacts_Relationships']; ?>
+    <?php $toolModules = ['Contacts', 'Accounts', 'Project', 'stic_Contacts_Relationships', 'AOS_Quotes', 'AOS_Line_Item_Groups', 'AOS_Products_Quotes', 'AOS_Products']; ?>
 
     <!--
         -------------------------------------------------------------------
@@ -809,6 +809,10 @@ $browserDefaults = [
                 <select id="setModule" style="flex:0.7">
                     <option value="Contacts">Personas (Contacts)</option>
                     <option value="Accounts">Organizaciones (Accounts)</option>
+                    <option value="AOS_Quotes">Presupuestos (AOS_Quotes)</option>
+                    <option value="AOS_Line_Item_Groups">Grupos de línea (AOS_Line_Item_Groups)</option>
+                    <option value="AOS_Products_Quotes">Líneas de producto (AOS_Products_Quotes)</option>
+                    <option value="AOS_Products">Productos (AOS_Products)</option>
                 </select>
                 <input type="text" id="setId" placeholder="ID del registro (vacío = crear)">
             </div>
@@ -819,6 +823,10 @@ $browserDefaults = [
             <div class="input-group">
                 <input type="text" id="setField2" placeholder="Field name">
                 <input type="text" id="setVal2" placeholder="Valor (opcional)">
+            </div>
+            <div class="input-group">
+                <input type="text" id="setField3" placeholder="Field name (opcional)">
+                <input type="text" id="setVal3" placeholder="Valor (opcional)">
             </div>
             <button class="btn-green" id="btnSet" onclick="apiCallSet()">Guardar registro</button>
             <div id="setResult" class="result"></div>
@@ -1091,9 +1099,12 @@ $browserDefaults = [
             const v1 = document.getElementById('setVal1').value.trim();
             const f2 = document.getElementById('setField2').value.trim();
             const v2 = document.getElementById('setVal2').value.trim();
+            const f3 = document.getElementById('setField3').value.trim();
+            const v3 = document.getElementById('setVal3').value.trim();
 
             if (f1) { fd.append('field_values[' + f1 + ']', v1); }
             if (f2) { fd.append('field_values[' + f2 + ']', v2); }
+            if (f3) { fd.append('field_values[' + f3 + ']', v3); }
 
             /** Guard: at least one field name + value pair is required */
             if (!f1 && !f2) { result.innerHTML = '<div class="error">Introduce al menos un nombre de campo y su valor.</div>'; return; }

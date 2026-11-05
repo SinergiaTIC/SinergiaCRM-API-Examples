@@ -201,5 +201,69 @@
     // $data['invalid_email'] = '1'; // No valido
 
         
+// EXAMPLE 13
+// Create a quote (presupuesto) indicating name, stage and expiration date.
+// Notes:
+// - `stage` is required (enum). Typical values: Draft, Negotiation, Closed Won, Closed Lost.
+// - `expiration` is required (date, Y-m-d).
+// - Currency amounts are calculated by the CRM; you can set `currency_id` (use '-99' for the system default currency).
+
+    // $module = 'AOS_Quotes';
+    // $data = array();
+    // $data['name'] = 'Presupuesto API';
+    // $data['stage'] = 'Draft';
+    // $data['expiration'] = '2026-12-31';
+    // $data['currency_id'] = '-99';
+    // $data['assigned_user_id'] = '<ASSIGNED_USER_ID>';
+
+
+// EXAMPLE 14
+// Create a new line item group inside an existing quote (AOS_Quotes).
+// The group is linked to the quote through the parent fields:
+//   - parent_type = 'AOS_Quotes'
+//   - parent_id   = <QUOTE_ID>
+// If the API returns "Acceso denegado", make sure the API user's role has
+// access (edit/list/view) to the AOS_Line_Item_Groups module.
+
+    // $module = 'AOS_Line_Item_Groups';
+    // $data = array();
+    // $data['parent_type'] = 'AOS_Quotes';
+    // $data['parent_id'] = '<QUOTE_ID>';
+    // $data['name'] = 'Grupo API';
+    // $data['number'] = 1;
+
+
+// EXAMPLE 15
+// Create a new product/service line inside an existing quote.
+// The line is linked to the quote through the parent fields and optionally to
+// a group (group_id) created with EXAMPLE 14.
+// Required fields: product_unit_price, vat_amt, product_total_price.
+//   - parent_type = 'AOS_Quotes'
+//   - parent_id   = <QUOTE_ID>
+//   - group_id    = <GROUP_ID> (optional, use the id returned by EXAMPLE 14)
+// If the API returns "Acceso denegado", make sure the API user's role has
+// access (edit/list/view) to the AOS_Products_Quotes module.
+
+    // $module = 'AOS_Products_Quotes';
+    // $data = array();
+    // $data['parent_type'] = 'AOS_Quotes';
+    // $data['parent_id'] = '<QUOTE_ID>';
+    // $data['group_id'] = '<GROUP_ID>';            // optional
+    // $data['name'] = 'Linea API';
+    // $data['product_qty'] = 1;
+    // $data['product_unit_price'] = '10';
+    // $data['vat_amt'] = '2.1';
+    // $data['product_total_price'] = '10';
+    // $data['product_id'] = '<AOS_PRODUCT_ID>';    // optional, links to a catalog product
+
+
+// EXAMPLE 16
+// Read the groups and product/service lines of an existing quote.
+// Use get_relationships (see Ejemplos/GET/get_relationships.php) with:
+//   - module_name      = 'AOS_Quotes'
+//   - module_id        = <QUOTE_ID>
+//   - link_field_name  = 'aos_line_item_groups' (groups) or 'aos_products_quotes' (lines)
+
+
 // Execute the call to the corresponding API client function
 $apiClient->setEntry($module, $data);

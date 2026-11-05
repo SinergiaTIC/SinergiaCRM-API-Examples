@@ -202,6 +202,53 @@
     //     "limit" => '',
     // );
 
+
+// EXAMPLE 10
+// Get the groups of a quote (presupuesto) whose id = <QUOTE_ID>
+
+    // $params = array(
+    //     'module_name' => 'AOS_Quotes',
+    //     "module_id" => '<QUOTE_ID>',
+    //     "link_field_name" => "aos_line_item_groups",
+    //     "related_module_query" => "",
+    //     "related_fields" => array(
+    //         'id',
+    //         'name',
+    //         'number',
+    //         'total_amount',
+    //     ),
+    //     "related_module_link_name_to_fields_array" => array(),
+    //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '',
+    //     "limit" => '',
+    // );
+
+
+// EXAMPLE 11
+// Get the product/service lines of a quote (presupuesto) whose id = <QUOTE_ID>
+
+    // $params = array(
+    //     'module_name' => 'AOS_Quotes',
+    //     "module_id" => '<QUOTE_ID>',
+    //     "link_field_name" => "aos_products_quotes",
+    //     "related_module_query" => "",
+    //     "related_fields" => array(
+    //         'id',
+    //         'name',
+    //         'product_qty',
+    //         'product_unit_price',
+    //         'vat_amt',
+    //         'product_total_price',
+    //         'group_id',
+    //     ),
+    //     "related_module_link_name_to_fields_array" => array(),
+    //     "deleted" => 0,
+    //     "order_by" => '',
+    //     "offset" => '',
+    //     "limit" => '',
+    // );
+
 // Execute the call to the corresponding API client function
 $apiClient->getRelationships($params);
 
