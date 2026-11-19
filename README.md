@@ -5,13 +5,14 @@ Colección de clientes demo para las diferentes APIs de SinergiaCRM. Abre `index
 ## Clientes disponibles
 
 ### V8 API Client (`v8/`)
-Cliente web para la API REST V8 de SuiteCRM usando el grant `client_credentials`. Permite explorar contactos, relaciones, valores de listas desplegables y módulos.
+Cliente web para la API REST V8 de SuiteCRM usando el grant `client_credentials`. Permite explorar contactos, relaciones, listados paginados de registros de cualquier módulo, valores de listas desplegables y módulos.
 
 - **Autenticación:** `client_credentials` OAuth2 grant
 - **Endpoints usados:** `/Api/access_token`, `/Api/V8/module/*`, `/Api/V8/meta/*`
 - **Funciones:**
   - Buscar relaciones activas por persona (con datos de proyecto)
   - Obtener detalles de persona por ID
+  - Listar registros de cualquier módulo con paginación (`Contacts`, `Accounts`, `Project`, `stic_Contacts_Relationships`, `stic_Bookings`, `stic_Resources`, `stic_Events`, `stic_Registrations`, ...)
   - Consultar inscripciones de un evento (relación `stic_registrations_stic_events`, con la persona relacionada de cada inscripción)
   - Buscar valores de cualquier lista desplegable por su clave
   - Listar módulos disponibles con ACLs

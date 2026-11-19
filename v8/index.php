@@ -17,6 +17,8 @@
  *   - getRelationshipTypes  Retrieve available enum values for the
  *                            relationship_type field (legacy name: getEnumTypes).
  *   - getModules         List all available modules via meta/modules.
+ *   - getModuleRecords   List records of any module through
+ *                        GET /Api/V8/module/{module} with pagination.
  *   - getDropdown        Look up a dropdown list by its list_key across
  *                        known module fields.
  *
@@ -301,6 +303,54 @@ function fetchModules(): array
 }
 
 /**
+ * Fetch a paginated list of records from a module.
+ *
+ * Uses the collection endpoint GET /Api/V8/module/{module}, which returns a
+ * JSON:API `data` array of records and pagination metadata (`total-records`
+ * and `total-pages`). Pagination is exposed to the caller so the UI can show
+ * one page at a time instead of assuming that the first response contains
+ * every record.
+ *
+ * Suggested module names (internal SuiteCRM/SinergiaCRM names):
+ * Contacts, Accounts, Project, stic_Contacts_Relationships, stic_Bookings,
+ * stic_Resources, stic_Events and stic_Registrations.
+ *
+ * @param string $module   Internal module name, e.g. `Contacts` or `stic_Bookings`.
+ * @param int    $page     1-based page number.
+ * @param int    $pageSize Number of records per page (1..100).
+ * @return array           Structured result with `success`, `module`, `page`,
+ *                         `page_size`, `count`, `total_records`, `total_pages`
+ *                         and `data` (one entry per record: `id` + `attributes`).
+ */
+function fetchModuleRecords(string $module, int $page = 1, int $pageSize = 20): array
+{
+    $token = getAccessToken();
+    $data = apiGet("/Api/V8/module/$module", $token, [
+        'page[number]' => $page,
+        'page[size]' => $pageSize,
+    ]);
+
+    $records = [];
+    foreach ($data['data'] ?? [] as $item) {
+        $records[] = [
+            'id' => $item['id'] ?? '',
+            'attributes' => $item['attributes'] ?? [],
+        ];
+    }
+
+    return [
+        'success' => true,
+        'module' => $module,
+        'page' => $page,
+        'page_size' => $pageSize,
+        'count' => count($records),
+        'total_records' => $data['meta']['total-records'] ?? count($records),
+        'total_pages' => $data['meta']['total-pages'] ?? 1,
+        'data' => $records,
+    ];
+}
+
+/**
  * Fetch comprehensive details for a single contact by UUID.
  *
  * Only a subset of fields relevant to the SinergiaCRM use case is requested
@@ -487,6 +537,7 @@ function fetchEventRegistrations(string $eventId, string $linkName = 'stic_regis
  *   - getEventRegistrations (requires event_id; optional link_name)
  *   - getRelationshipTypes
  *   - getModules
+ *   - getModuleRecords     (requires module; optional page, page_size)
  *   - getDropdown          (requires list_key)
  *
  * Unrecognised or malformed actions return HTTP 400.
@@ -527,6 +578,25 @@ if ($action) {
         /** ---- getModules: list all available modules ---- */
         elseif ($action === 'getModules') {
             echo json_encode(fetchModules(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+
+        /**
+         * ---- getModuleRecords: list records of a module with pagination ----
+         *
+         * The module name is interpolated into the API path, so only internal
+         * SuiteCRM-style names (letters, digits and underscores) are accepted.
+         * page and page_size are clamped to safe ranges.
+         */
+        elseif ($action === 'getModuleRecords') {
+            $module = $_GET['module'] ?? '';
+            if (!preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $module) || strlen($module) > 128) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Nombre de módulo no válido']);
+                exit;
+            }
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $pageSize = isset($_GET['page_size']) ? min(100, max(1, (int)$_GET['page_size'])) : 20;
+            echo json_encode(fetchModuleRecords($module, $page, $pageSize), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         }
 
         /**
@@ -626,12 +696,13 @@ if ($action) {
  * No `action` parameter was provided, so we render the interactive
  * browser client. The page includes:
  *   - A connection settings card (showing current config, with inline edit)
- *   - Five tool cards:
+ *   - Six tool cards:
  *       1. Active Contacts Relationships by Contact
  *       2. Contact Details by ID
- *       3. Dropdown List Values
- *       4. Available Modules
- *       5. Registrations by Event
+ *       3. Module Records List (paginated)
+ *       4. Dropdown List Values
+ *       5. Available Modules
+ *       6. Registrations by Event
  *   - Inline JavaScript that calls the API endpoints above via fetch().
  */
 
@@ -933,6 +1004,24 @@ header('Content-Type: text/html; charset=utf-8');
             margin-bottom: 0.75rem;
         }
 
+        /* ──────── Pagination controls for module record listings ──────── */
+        .pager {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .pager button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pager-info {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
         /* ──────── Enum / dropdown list display ──────── */
         .enum-list {
             list-style: none;
@@ -1070,7 +1159,7 @@ header('Content-Type: text/html; charset=utf-8');
     <!-- ──────── Page header ──────── -->
     <h1>Cliente API V8 de SinergiaCRM</h1>
     <p class="subtitle">
-        Cliente web de la API REST V8: explora personas, relaciones, valores de listas desplegables y módulos.
+        Cliente web de la API REST V8: explora personas, relaciones, listados de registros por módulo, valores de listas desplegables y módulos.
     </p>
 
     <!-- ──────── Connection settings card ──────── -->
@@ -1151,6 +1240,36 @@ header('Content-Type: text/html; charset=utf-8');
                 <button class="btn-secondary" id="btnContact" onclick="searchContact()">Buscar</button>
             </div>
             <div id="contactResult" class="result"></div>
+        </div>
+    </div>
+
+    <!-- ──────── Tool cards: module record listing row ──────── -->
+    <div class="cards" style="margin-top:1.5rem">
+        <!-- Card 3: Paginated record list for any module -->
+        <div class="card">
+            <h2>Listado de registros de un módulo</h2>
+            <p class="desc">
+                Consulta <code>GET /Api/V8/module/{module}</code> con paginación (<code>page[number]</code> y <code>page[size]</code>).
+                Escribe el nombre interno del módulo o elige uno de los sugeridos: <code>Contacts</code>, <code>Accounts</code>,
+                <code>Project</code>, <code>stic_Contacts_Relationships</code>, <code>stic_Bookings</code>, <code>stic_Resources</code>,
+                <code>stic_Events</code> y <code>stic_Registrations</code>.
+            </p>
+            <div class="input-group">
+                <input type="text" id="recordModuleInput" list="recordModuleOptions" value="Contacts" placeholder="Nombre interno del módulo (p. ej. Contacts)">
+                <datalist id="recordModuleOptions">
+                    <option value="Contacts"></option>
+                    <option value="Accounts"></option>
+                    <option value="Project"></option>
+                    <option value="stic_Contacts_Relationships"></option>
+                    <option value="stic_Bookings"></option>
+                    <option value="stic_Resources"></option>
+                    <option value="stic_Events"></option>
+                    <option value="stic_Registrations"></option>
+                </datalist>
+                <input type="number" id="recordPageSize" min="1" max="100" value="20" title="Registros por página" style="max-width:85px">
+                <button class="btn-primary" id="btnModuleRecords" onclick="searchModuleRecords(1)">Buscar</button>
+            </div>
+            <div id="moduleRecordsResult" class="result"></div>
         </div>
     </div>
 
@@ -1496,6 +1615,90 @@ header('Content-Type: text/html; charset=utf-8');
                     html += `<tr data-name="${esc(key)}"><td><code>${esc(key)}</code></td><td>${esc(label)}</td><td>${esc(access.join(', '))}</td></tr>`;
                 }
                 html += '</tbody></table></div>';
+                result.innerHTML = html;
+            } catch (e) {
+                result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        /**
+         * Additional columns shown per module in the record list. Modules not
+         * listed here fall back to `date_modified` so the example still works
+         * for any other module available in the instance.
+         */
+        const moduleRecordFields = {
+            Contacts: ['first_name', 'last_name', 'email1', 'phone_mobile'],
+            Accounts: ['account_type', 'industry', 'email1', 'phone_office'],
+            Project: ['status', 'priority', 'estimated_start_date', 'estimated_end_date'],
+            stic_Contacts_Relationships: ['relationship_type', 'role', 'start_date', 'end_date'],
+            stic_Bookings: ['status', 'start_date', 'end_date'],
+            stic_Resources: ['type', 'status', 'code'],
+            stic_Events: ['status', 'start_date', 'end_date'],
+            stic_Registrations: ['status', 'participation_type', 'registration_date'],
+        };
+
+        /** Turn a CRM field name into a readable column label. */
+        function fieldLabel(field) {
+            return field.replace(/_c$/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        /**
+         * Fetch and display one page of records from a module.
+         * Calls the `?action=getModuleRecords` endpoint, which proxies
+         * GET /Api/V8/module/{module} with page[number]/page[size].
+         * The module field accepts any valid internal module name; the
+         * suggested ones are provided by the datalist in the form.
+         *
+         * @param {number} page - 1-based page number to display.
+         */
+        async function searchModuleRecords(page = 1) {
+            const moduleName = document.getElementById('recordModuleInput').value.trim();
+            const pageSizeRaw = parseInt(document.getElementById('recordPageSize').value, 10);
+            const pageSize = Math.min(100, Math.max(1, pageSizeRaw || 20));
+            const btn = document.getElementById('btnModuleRecords');
+            const result = document.getElementById('moduleRecordsResult');
+
+            if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(moduleName)) {
+                result.innerHTML = '<div class="error">Introduce un nombre de módulo válido (letras, números y guiones bajos).</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading">Cargando...</div>';
+
+            try {
+                const resp = await apiFetch(`?action=getModuleRecords&module=${encodeURIComponent(moduleName)}&page=${page}&page_size=${pageSize}`);
+                const data = await resp.json();
+                if (!data.success) {
+                    result.innerHTML = `<div class="error">${esc(data.error || 'Error desconocido')}</div>`;
+                    return;
+                }
+                if (!data.data.length) {
+                    result.innerHTML = `<div class="summary">No hay registros en <code>${esc(data.module)}</code>.</div>`;
+                    return;
+                }
+
+                const extraFields = moduleRecordFields[data.module] || ['date_modified'];
+                let html = `<div class="summary">${data.count} registro(s) en esta página — ${esc(String(data.total_records))} en total (página ${data.page} de ${data.total_pages}) en <code>${esc(data.module)}</code></div>`;
+                html += '<div class="module-scroll"><table class="module-table"><thead><tr><th>ID</th><th>Nombre</th>';
+                extraFields.forEach(f => { html += `<th>${esc(fieldLabel(f))}</th>`; });
+                html += '</tr></thead><tbody>';
+                data.data.forEach(rec => {
+                    const a = rec.attributes || {};
+                    const name = a.name || [a.first_name, a.last_name].filter(Boolean).join(' ') || '(sin nombre)';
+                    html += `<tr><td><code>${esc(rec.id)}</code></td><td>${esc(String(name))}</td>`;
+                    extraFields.forEach(f => { html += `<td>${esc(a[f] != null && a[f] !== '' ? String(a[f]) : '—')}</td>`; });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+
+                html += '<div class="pager">';
+                html += `<button class="btn-sm btn-clear" ${data.page <= 1 ? 'disabled' : ''} onclick="searchModuleRecords(${data.page - 1})">← Anterior</button>`;
+                html += `<span class="pager-info">${data.page} / ${data.total_pages}</span>`;
+                html += `<button class="btn-sm btn-save" ${data.page >= data.total_pages ? 'disabled' : ''} onclick="searchModuleRecords(${data.page + 1})">Siguiente →</button>`;
+                html += '</div>';
                 result.innerHTML = html;
             } catch (e) {
                 result.innerHTML = `<div class="error">Error en la petición: ${esc(e.message)}</div>`;

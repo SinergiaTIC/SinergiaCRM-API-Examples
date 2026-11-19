@@ -63,7 +63,8 @@
                 Cliente web de la <strong>API REST V8 de SuiteCRM</strong> que usa el grant OAuth
                 <code>client_credentials</code>. Consulta personas, obtiene sus
                 <code>stic_Contacts_Relationships</code> activas con datos de los proyectos relacionados,
-                consulta los valores de las listas desplegables y explora los módulos disponibles.
+                lista registros paginados de cualquier módulo, consulta los valores de las listas desplegables
+                y explora los módulos disponibles.
             </p>
             <a href="v8/" class="btn">Abrir el cliente API V8</a>
             <a href="https://github.com/SinergiaTIC/SinergiaCRM-API-Examples/blob/main/v8/README.md" class="btn btn-outline" target="_blank" rel="noopener">Ver documentación ↗</a>

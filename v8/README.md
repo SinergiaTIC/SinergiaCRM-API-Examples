@@ -1,6 +1,6 @@
 # SinergiaCRM API V8 — Demo Client
 
-Cliente web para la API REST V8 de SuiteCRM/SinergiaCRM usando el grant OAuth2 `client_credentials`. Permite explorar contactos, relaciones, valores de listas desplegables y módulos.
+Cliente web para la API REST V8 de SuiteCRM/SinergiaCRM usando el grant OAuth2 `client_credentials`. Permite explorar contactos, relaciones, listados paginados de registros de cualquier módulo, valores de listas desplegables y módulos.
 
 ## Tabla de contenidos
 
@@ -99,6 +99,16 @@ Lista todos los módulos disponibles en la API con sus etiquetas traducidas y pe
 
 Incluye filtro de búsqueda en tiempo real y tabla con desplazamiento.
 
+### Module Records List (Listado de registros de un módulo)
+
+Devuelve un listado paginado de los registros de un módulo. El campo de módulo acepta cualquier nombre interno válido (`letras`, números y `_`) y ofrece como sugerencias estos módulos: `Contacts`, `Accounts`, `Project`, `stic_Contacts_Relationships`, `stic_Bookings`, `stic_Resources`, `stic_Events` y `stic_Registrations`. Se puede ajustar el tamaño de página (1–100 registros) y navegar entre páginas con los botones **Anterior** / **Siguiente**.
+
+**Endpoint:** `GET /Api/V8/module/{module}`
+
+**Parámetros:** `page[number]`, `page[size]`. La respuesta incluye `meta.total-records` y `meta.total-pages`, que se usan para pintar la paginación. La tabla muestra el `id`, el nombre y algunas columnas específicas según el módulo (para cualquier otro módulo, `date_modified`).
+
+> **Nombres internos:** en la API se usan los nombres de bean, no las etiquetas de la UI: los proyectos son `Project` (no `Projects`) y las relaciones son `stic_Contacts_Relationships`. Reservas y recursos son `stic_Bookings` y `stic_Resources`.
+
 ### Registrations by Event (Inscripciones de un Evento)
 
 Dado el ID de un evento (`stic_Events`), obtiene todas sus inscripciones (`stic_Registrations`) a través del enlace `stic_registrations_stic_events`, con paginación completa. Para cada inscripción se incluyen sus campos core del CRM: `name`, `status`, `participation_type`, `registration_date`, `attendance_percentage`, `date_modified` y, además, el **UUID de la Persona relacionada** (`contact_id`), leído del enlace `stic_registrations_contacts`. No se devuelven campos custom específicos de la instancia.
@@ -134,6 +144,16 @@ Respuesta:
 ```
 
 ### Módulos
+
+Listado paginado de registros de un módulo:
+
+```
+GET /Api/V8/module/{module_name}?page[number]=1&page[size]=20
+Authorization: Bearer {access_token}
+Accept: application/vnd.api+json
+```
+
+Un registro concreto por su ID:
 
 ```
 GET /Api/V8/module/{module_name}/{id}
@@ -204,6 +224,7 @@ El archivo `index.php` funciona en dos modos:
 | `fetchEventRegistrations(eventId, linkName)` | Obtiene todas las inscripciones de un evento con su persona relacionada |
 | `fetchRelationshipTypes()` | Obtiene valores enum de tipo de relación |
 | `fetchModules()` | Obtiene lista de módulos disponibles |
+| `fetchModuleRecords(module, page, page_size)` | Obtiene una página de registros de un módulo (`GET /Api/V8/module/{module}`) |
 
 ### Estructura de directorios
 
