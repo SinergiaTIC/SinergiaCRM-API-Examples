@@ -101,7 +101,7 @@ Incluye filtro de búsqueda en tiempo real y tabla con desplazamiento.
 
 ### Module Records List (Listado de registros de un módulo)
 
-Devuelve un listado paginado de los registros de un módulo. El campo de módulo acepta cualquier nombre interno válido (`letras`, números y `_`) y ofrece como sugerencias `Contacts`, `Accounts`, `Project` / `Projects`, `stic_Contacts_Relationships` / `stic_Contacts_relationships`, `stic_Bookings` / `Bookings`, `stic_Resources` / `Resources`, `stic_Events` / `Events` y `stic_Registrations` / `Registrations`. Se puede ajustar el tamaño de página (1–100 registros) y navegar entre páginas con los botones **Anterior** / **Siguiente**.
+Devuelve un listado paginado de los registros de un módulo. El desplegable de módulo muestra `Contacts`, `Accounts`, `Project` / `Projects`, `stic_Contacts_Relationships` / `stic_Contacts_relationships`, `stic_Bookings` / `Bookings`, `stic_Resources` / `Resources`, `stic_Events` / `Events` y `stic_Registrations` / `Registrations`. El endpoint admite cualquier nombre interno válido (`letras`, números y `_`). Se puede ajustar el tamaño de página (1–100 registros) y navegar entre páginas con los botones **Anterior** / **Siguiente**.
 
 **Endpoint:** `GET /Api/V8/module/{module}`
 

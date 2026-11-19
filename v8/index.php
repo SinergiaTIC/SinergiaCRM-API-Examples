@@ -833,15 +833,18 @@ header('Content-Type: text/html; charset=utf-8');
             margin-bottom: 1rem;
         }
 
-        .input-group input {
+        .input-group input,
+        .input-group select {
             flex: 1;
             padding: 0.55rem 0.75rem;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 0.9rem;
+            background: #fff;
         }
 
-        .input-group input:focus {
+        .input-group input:focus,
+        .input-group select:focus {
             outline: none;
             border-color: #4a90d9;
             box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
@@ -1279,13 +1282,12 @@ header('Content-Type: text/html; charset=utf-8');
             <h2>Listado de registros de un módulo</h2>
             <p class="desc">
                 Consulta <code>GET /Api/V8/module/{module}</code> con paginación (<code>page[number]</code> y <code>page[size]</code>).
-                Escribe el nombre interno del módulo o elige uno de los sugeridos. También se aceptan alias:
+                Selecciona el módulo en la lista. Los alias se normalizan automáticamente:
                 <code>Projects</code> → <code>Project</code>, <code>Bookings</code> → <code>stic_Bookings</code>,
                 <code>Resources</code> → <code>stic_Resources</code> y <code>stic_Contacts_relationships</code> → <code>stic_Contacts_Relationships</code>.
             </p>
             <div class="input-group">
-                <input type="text" id="recordModuleInput" list="recordModuleOptions" value="Contacts" placeholder="Nombre interno del módulo (p. ej. Contacts)">
-                <datalist id="recordModuleOptions">
+                <select id="recordModuleInput" title="Módulo a consultar">
                     <option value="Contacts">Contacts</option>
                     <option value="Accounts">Accounts</option>
                     <option value="Project">Project (Proyectos)</option>
@@ -1300,7 +1302,7 @@ header('Content-Type: text/html; charset=utf-8');
                     <option value="Events">Events → stic_Events</option>
                     <option value="stic_Registrations">stic_Registrations</option>
                     <option value="Registrations">Registrations → stic_Registrations</option>
-                </datalist>
+                </select>
                 <input type="number" id="recordPageSize" min="1" max="100" value="20" title="Registros por página" style="max-width:85px">
                 <button class="btn-primary" id="btnModuleRecords" onclick="searchModuleRecords(1)">Buscar</button>
             </div>
@@ -1685,8 +1687,8 @@ header('Content-Type: text/html; charset=utf-8');
          * GET /Api/V8/module/{module} with page[number]/page[size].
          * The module field accepts any valid module name; aliases such as
          * `Projects`, `Bookings`, `Resources` or `stic_Contacts_relationships`
-         * are normalised server-side to the internal bean name. Suggested
-         * values are provided by the datalist in the form.
+         * are normalised server-side to the internal bean name. Available
+         * values are provided by the module dropdown in the form.
          *
          * @param {number} page - 1-based page number to display.
          */
