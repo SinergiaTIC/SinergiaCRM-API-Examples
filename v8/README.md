@@ -101,13 +101,13 @@ Incluye filtro de búsqueda en tiempo real y tabla con desplazamiento.
 
 ### Module Records List (Listado de registros de un módulo)
 
-Devuelve un listado paginado de los registros de un módulo. El campo de módulo acepta cualquier nombre interno válido (`letras`, números y `_`) y ofrece como sugerencias estos módulos: `Contacts`, `Accounts`, `Project`, `stic_Contacts_Relationships`, `stic_Bookings`, `stic_Resources`, `stic_Events` y `stic_Registrations`. Se puede ajustar el tamaño de página (1–100 registros) y navegar entre páginas con los botones **Anterior** / **Siguiente**.
+Devuelve un listado paginado de los registros de un módulo. El campo de módulo acepta cualquier nombre interno válido (`letras`, números y `_`) y ofrece como sugerencias `Contacts`, `Accounts`, `Project` / `Projects`, `stic_Contacts_Relationships` / `stic_Contacts_relationships`, `stic_Bookings` / `Bookings`, `stic_Resources` / `Resources`, `stic_Events` / `Events` y `stic_Registrations` / `Registrations`. Se puede ajustar el tamaño de página (1–100 registros) y navegar entre páginas con los botones **Anterior** / **Siguiente**.
 
 **Endpoint:** `GET /Api/V8/module/{module}`
 
 **Parámetros:** `page[number]`, `page[size]`. La respuesta incluye `meta.total-records` y `meta.total-pages`, que se usan para pintar la paginación. La tabla muestra el `id`, el nombre y algunas columnas específicas según el módulo (para cualquier otro módulo, `date_modified`).
 
-> **Nombres internos:** en la API se usan los nombres de bean, no las etiquetas de la UI: los proyectos son `Project` (no `Projects`) y las relaciones son `stic_Contacts_Relationships`. Reservas y recursos son `stic_Bookings` y `stic_Resources`.
+> **Nombres internos:** en la API se usan los nombres de bean, no las etiquetas de la UI: los proyectos son `Project` (no `Projects`) y las relaciones son `stic_Contacts_Relationships`. Reservas y recursos son `stic_Bookings` y `stic_Resources`. El cliente normaliza automáticamente los alias indicados arriba (`Projects` → `Project`, `Bookings` → `stic_Bookings`, `Resources` → `stic_Resources`, `stic_Contacts_relationships` → `stic_Contacts_Relationships`, etc.) antes de llamar a la API.
 
 ### Registrations by Event (Inscripciones de un Evento)
 
@@ -224,6 +224,7 @@ El archivo `index.php` funciona en dos modos:
 | `fetchEventRegistrations(eventId, linkName)` | Obtiene todas las inscripciones de un evento con su persona relacionada |
 | `fetchRelationshipTypes()` | Obtiene valores enum de tipo de relación |
 | `fetchModules()` | Obtiene lista de módulos disponibles |
+| `canonicalModuleName(module)` | Normaliza alias (`Projects`, `Bookings`, `Resources`, ...) al nombre interno del módulo |
 | `fetchModuleRecords(module, page, page_size)` | Obtiene una página de registros de un módulo (`GET /Api/V8/module/{module}`) |
 
 ### Estructura de directorios

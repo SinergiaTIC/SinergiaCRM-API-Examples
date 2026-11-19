@@ -303,6 +303,33 @@ function fetchModules(): array
 }
 
 /**
+ * Normalise the module names offered in the UI to the internal bean names
+ * expected by the API. Matching is case-insensitive so variants such as
+ * `Projects`, `Bookings`, `Resources` or `stic_Contacts_relationships` also
+ * work. Unknown names are returned unchanged (any other module is allowed).
+ *
+ * @param string $module Name typed by the user.
+ * @return string        Internal module name used in the API path.
+ */
+function canonicalModuleName(string $module): string
+{
+    $aliases = [
+        'projects' => 'Project',
+        'project' => 'Project',
+        'stic_contacts_relationships' => 'stic_Contacts_Relationships',
+        'bookings' => 'stic_Bookings',
+        'stic_bookings' => 'stic_Bookings',
+        'resources' => 'stic_Resources',
+        'stic_resources' => 'stic_Resources',
+        'events' => 'stic_Events',
+        'stic_events' => 'stic_Events',
+        'registrations' => 'stic_Registrations',
+        'stic_registrations' => 'stic_Registrations',
+    ];
+    return $aliases[strtolower($module)] ?? $module;
+}
+
+/**
  * Fetch a paginated list of records from a module.
  *
  * Uses the collection endpoint GET /Api/V8/module/{module}, which returns a
@@ -313,7 +340,9 @@ function fetchModules(): array
  *
  * Suggested module names (internal SuiteCRM/SinergiaCRM names):
  * Contacts, Accounts, Project, stic_Contacts_Relationships, stic_Bookings,
- * stic_Resources, stic_Events and stic_Registrations.
+ * stic_Resources, stic_Events and stic_Registrations. Aliases such as
+ * `Projects`, `Bookings`, `Resources` and `stic_Contacts_relationships` are
+ * normalised by canonicalModuleName() before reaching this function.
  *
  * @param string $module   Internal module name, e.g. `Contacts` or `stic_Bookings`.
  * @param int    $page     1-based page number.
@@ -588,7 +617,7 @@ if ($action) {
          * page and page_size are clamped to safe ranges.
          */
         elseif ($action === 'getModuleRecords') {
-            $module = $_GET['module'] ?? '';
+            $module = canonicalModuleName($_GET['module'] ?? '');
             if (!preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $module) || strlen($module) > 128) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Nombre de módulo no válido']);
@@ -1250,21 +1279,27 @@ header('Content-Type: text/html; charset=utf-8');
             <h2>Listado de registros de un módulo</h2>
             <p class="desc">
                 Consulta <code>GET /Api/V8/module/{module}</code> con paginación (<code>page[number]</code> y <code>page[size]</code>).
-                Escribe el nombre interno del módulo o elige uno de los sugeridos: <code>Contacts</code>, <code>Accounts</code>,
-                <code>Project</code>, <code>stic_Contacts_Relationships</code>, <code>stic_Bookings</code>, <code>stic_Resources</code>,
-                <code>stic_Events</code> y <code>stic_Registrations</code>.
+                Escribe el nombre interno del módulo o elige uno de los sugeridos. También se aceptan alias:
+                <code>Projects</code> → <code>Project</code>, <code>Bookings</code> → <code>stic_Bookings</code>,
+                <code>Resources</code> → <code>stic_Resources</code> y <code>stic_Contacts_relationships</code> → <code>stic_Contacts_Relationships</code>.
             </p>
             <div class="input-group">
                 <input type="text" id="recordModuleInput" list="recordModuleOptions" value="Contacts" placeholder="Nombre interno del módulo (p. ej. Contacts)">
                 <datalist id="recordModuleOptions">
-                    <option value="Contacts"></option>
-                    <option value="Accounts"></option>
-                    <option value="Project"></option>
-                    <option value="stic_Contacts_Relationships"></option>
-                    <option value="stic_Bookings"></option>
-                    <option value="stic_Resources"></option>
-                    <option value="stic_Events"></option>
-                    <option value="stic_Registrations"></option>
+                    <option value="Contacts">Contacts</option>
+                    <option value="Accounts">Accounts</option>
+                    <option value="Project">Project (Proyectos)</option>
+                    <option value="Projects">Projects → Project</option>
+                    <option value="stic_Contacts_Relationships">stic_Contacts_Relationships</option>
+                    <option value="stic_Contacts_relationships">stic_Contacts_relationships → stic_Contacts_Relationships</option>
+                    <option value="stic_Bookings">stic_Bookings (Reservas)</option>
+                    <option value="Bookings">Bookings → stic_Bookings</option>
+                    <option value="stic_Resources">stic_Resources (Recursos)</option>
+                    <option value="Resources">Resources → stic_Resources</option>
+                    <option value="stic_Events">stic_Events</option>
+                    <option value="Events">Events → stic_Events</option>
+                    <option value="stic_Registrations">stic_Registrations</option>
+                    <option value="Registrations">Registrations → stic_Registrations</option>
                 </datalist>
                 <input type="number" id="recordPageSize" min="1" max="100" value="20" title="Registros por página" style="max-width:85px">
                 <button class="btn-primary" id="btnModuleRecords" onclick="searchModuleRecords(1)">Buscar</button>
@@ -1648,8 +1683,10 @@ header('Content-Type: text/html; charset=utf-8');
          * Fetch and display one page of records from a module.
          * Calls the `?action=getModuleRecords` endpoint, which proxies
          * GET /Api/V8/module/{module} with page[number]/page[size].
-         * The module field accepts any valid internal module name; the
-         * suggested ones are provided by the datalist in the form.
+         * The module field accepts any valid module name; aliases such as
+         * `Projects`, `Bookings`, `Resources` or `stic_Contacts_relationships`
+         * are normalised server-side to the internal bean name. Suggested
+         * values are provided by the datalist in the form.
          *
          * @param {number} page - 1-based page number to display.
          */
